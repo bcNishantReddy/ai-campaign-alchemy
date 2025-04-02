@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Plus, Mail, Users, BarChart3, Clock, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Campaign } from "@/types/database.types";
+import { Campaign, Profile } from "@/types/database.types";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
@@ -12,15 +11,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-
-interface Profile {
-  id: string;
-  name: string | null;
-  company_description: string | null;
-  profile_photo: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -45,7 +35,11 @@ const Dashboard = () => {
           if (profileError) {
             console.error("Error fetching profile:", profileError);
           } else {
-            setProfile(profileData);
+            // Set profile with default for missing fields
+            setProfile({
+              ...profileData,
+              profile_photo: profileData.profile_photo || null
+            });
           }
         }
         
@@ -99,7 +93,6 @@ const Dashboard = () => {
 
       <main className="flex-grow pt-24 pb-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Dashboard Header - Updated to match the image */}
           <div className="bg-gray-900 text-white p-4 rounded-t-lg mb-8">
             <div className="flex items-center">
               <Avatar className="h-10 w-10 bg-brand-purple mr-3">
@@ -127,7 +120,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
@@ -202,7 +194,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Search and Campaigns List */}
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">

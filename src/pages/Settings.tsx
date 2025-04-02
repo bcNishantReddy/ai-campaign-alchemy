@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,24 +17,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
-interface Profile {
-  id: string;
-  name: string | null;
-  company_description: string | null;
-  profile_photo: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ApiKeys {
-  id: string;
-  user_id: string;
-  mailjet_api_key: string | null;
-  mailjet_secret_key: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { Profile, UserApiKeys } from "@/types/database.types";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -61,7 +43,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [apiKeys, setApiKeys] = useState<ApiKeys | null>(null);
+  const [apiKeys, setApiKeys] = useState<UserApiKeys | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
@@ -104,7 +86,12 @@ const Settings = () => {
           .single();
           
         if (profileError) throw profileError;
-        setProfile(profileData);
+        
+        // Set the profile with default values for missing fields
+        setProfile({
+          ...profileData,
+          profile_photo: profileData.profile_photo || null
+        });
         
         if (profileData) {
           profileForm.reset({
@@ -113,21 +100,26 @@ const Settings = () => {
           });
         }
         
-        // Fetch API keys
-        const { data: apiKeysData, error: apiKeysError } = await supabase
-          .from("user_api_keys")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-          
-        if (apiKeysError && apiKeysError.code !== "PGRST116") throw apiKeysError;
-        setApiKeys(apiKeysData);
-        
-        if (apiKeysData) {
-          apiKeysForm.reset({
-            mailjet_api_key: apiKeysData.mailjet_api_key || "",
-            mailjet_secret_key: apiKeysData.mailjet_secret_key || "",
-          });
+        try {
+          // Custom query for user_api_keys since it's not in the generated types
+          const { data: apiKeysData, error: apiKeysError } = await supabase
+            .from("user_api_keys")
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+            
+          if (!apiKeysError) {
+            setApiKeys(apiKeysData as UserApiKeys);
+            
+            if (apiKeysData) {
+              apiKeysForm.reset({
+                mailjet_api_key: apiKeysData.mailjet_api_key || "",
+                mailjet_secret_key: apiKeysData.mailjet_secret_key || "",
+              });
+            }
+          }
+        } catch (apiKeyError) {
+          console.error("Error fetching API keys:", apiKeyError);
         }
         
       } catch (error: any) {
@@ -156,11 +148,15 @@ const Settings = () => {
       if (error) throw error;
       
       toast.success("Profile updated successfully");
-      setProfile({
-        ...profile!,
-        name: values.name,
-        company_description: values.company_description,
-      });
+      
+      // Update local profile state
+      if (profile) {
+        setProfile({
+          ...profile,
+          name: values.name,
+          company_description: values.company_description,
+        });
+      }
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
@@ -171,6 +167,7 @@ const Settings = () => {
     try {
       if (!user) return;
       
+      // Custom query for user_api_keys since it's not in the generated types
       if (apiKeys) {
         // Update existing API keys
         const { error } = await supabase
@@ -195,14 +192,19 @@ const Settings = () => {
         if (error) throw error;
         
         // Fetch the newly created API keys
-        const { data, error: fetchError } = await supabase
-          .from("user_api_keys")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-          
-        if (fetchError) throw fetchError;
-        setApiKeys(data);
+        try {
+          const { data, error: fetchError } = await supabase
+            .from("user_api_keys")
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+            
+          if (!fetchError && data) {
+            setApiKeys(data as UserApiKeys);
+          }
+        } catch (fetchError) {
+          console.error("Error fetching new API keys:", fetchError);
+        }
       }
       
       toast.success("API keys saved successfully");
@@ -216,9 +218,6 @@ const Settings = () => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: values.newPassword,
-      }, {
-        email: user?.email,
-        password: values.currentPassword,
       });
       
       if (error) throw error;
@@ -261,10 +260,13 @@ const Settings = () => {
         
       if (updateError) throw updateError;
       
-      setProfile({
-        ...profile!,
-        profile_photo: publicUrl,
-      });
+      // Update local state
+      if (profile) {
+        setProfile({
+          ...profile,
+          profile_photo: publicUrl,
+        });
+      }
       
       toast.success("Profile photo updated successfully");
     } catch (error: any) {

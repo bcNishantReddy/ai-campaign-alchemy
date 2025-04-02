@@ -1,14 +1,14 @@
+// Import Json type from Supabase for compatibility
+import { Json } from "@/integrations/supabase/types";
 
 export interface Profile {
   id: string;
   name: string | null;
   company_description: string | null;
+  profile_photo?: string | null;  // Make this optional
   created_at: string;
   updated_at: string;
 }
-
-// Import Json type from Supabase for compatibility
-import { Json } from "@/integrations/supabase/types";
 
 export interface Campaign {
   id: string;
@@ -43,6 +43,16 @@ export interface Email {
   subject: string | null;
   body: string | null;
   status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Add the missing UserApiKeys interface
+export interface UserApiKeys {
+  id: string;
+  user_id: string;
+  mailjet_api_key: string | null;
+  mailjet_secret_key: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -8,7 +8,7 @@ type Profile = {
   id: string;
   name: string | null;
   company_description: string | null;
-  profile_photo: string | null;
+  profile_photo?: string | null;  // Make this optional since it's not in the database yet
   created_at: string;
   updated_at: string;
 };
@@ -48,7 +48,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      // Handle possible missing profile_photo field by providing a default empty value
+      setProfile({
+        ...data,
+        profile_photo: data.profile_photo || null
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
