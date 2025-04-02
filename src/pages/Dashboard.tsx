@@ -35,11 +35,7 @@ const Dashboard = () => {
           if (profileError) {
             console.error("Error fetching profile:", profileError);
           } else {
-            // Set profile with default for missing fields
-            setProfile({
-              ...profileData,
-              profile_photo: profileData.profile_photo || null
-            });
+            setProfile(profileData as Profile);
           }
         }
         

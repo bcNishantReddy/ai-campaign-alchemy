@@ -1,3 +1,4 @@
+
 // Import Json type from Supabase for compatibility
 import { Json } from "@/integrations/supabase/types";
 
@@ -5,7 +6,7 @@ export interface Profile {
   id: string;
   name: string | null;
   company_description: string | null;
-  profile_photo?: string | null;  // Make this optional
+  profile_photo: string | null;  // Changed from optional to nullable to match DB
   created_at: string;
   updated_at: string;
 }
@@ -47,7 +48,6 @@ export interface Email {
   updated_at: string;
 }
 
-// Add the missing UserApiKeys interface
 export interface UserApiKeys {
   id: string;
   user_id: string;
@@ -84,6 +84,11 @@ declare module '@supabase/supabase-js' {
           Row: Email;
           Insert: Omit<Email, 'created_at' | 'updated_at' | 'id'> & { id?: string };
           Update: Partial<Omit<Email, 'created_at' | 'updated_at'>>;
+        };
+        user_api_keys: {
+          Row: UserApiKeys;
+          Insert: Omit<UserApiKeys, 'created_at' | 'updated_at' | 'id'> & { id?: string };
+          Update: Partial<Omit<UserApiKeys, 'created_at' | 'updated_at'>>;
         };
       };
     };

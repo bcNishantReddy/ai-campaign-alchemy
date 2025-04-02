@@ -98,6 +98,7 @@ export type Database = {
           created_at: string
           id: string
           name: string | null
+          profile_photo: string | null
           updated_at: string
         }
         Insert: {
@@ -105,6 +106,7 @@ export type Database = {
           created_at?: string
           id: string
           name?: string | null
+          profile_photo?: string | null
           updated_at?: string
         }
         Update: {
@@ -112,6 +114,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string | null
+          profile_photo?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -159,6 +162,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          mailjet_api_key: string | null
+          mailjet_secret_key: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mailjet_api_key?: string | null
+          mailjet_secret_key?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mailjet_api_key?: string | null
+          mailjet_secret_key?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

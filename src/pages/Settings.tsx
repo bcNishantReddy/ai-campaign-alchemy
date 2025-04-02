@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Upload, Key, Lock, User, Image } from "lucide-react";
+import { Upload, Key, Lock, User } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -87,11 +87,7 @@ const Settings = () => {
           
         if (profileError) throw profileError;
         
-        // Set the profile with default values for missing fields
-        setProfile({
-          ...profileData,
-          profile_photo: profileData.profile_photo || null
-        });
+        setProfile(profileData as Profile);
         
         if (profileData) {
           profileForm.reset({
@@ -101,7 +97,7 @@ const Settings = () => {
         }
         
         try {
-          // Custom query for user_api_keys since it's not in the generated types
+          // Query for user_api_keys using custom approach
           const { data: apiKeysData, error: apiKeysError } = await supabase
             .from("user_api_keys")
             .select("*")
@@ -167,7 +163,7 @@ const Settings = () => {
     try {
       if (!user) return;
       
-      // Custom query for user_api_keys since it's not in the generated types
+      // Using a custom query approach for user_api_keys
       if (apiKeys) {
         // Update existing API keys
         const { error } = await supabase

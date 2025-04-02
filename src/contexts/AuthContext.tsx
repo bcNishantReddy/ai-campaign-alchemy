@@ -1,17 +1,8 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-
-type Profile = {
-  id: string;
-  name: string | null;
-  company_description: string | null;
-  profile_photo?: string | null;  // Make this optional since it's not in the database yet
-  created_at: string;
-  updated_at: string;
-};
+import { Profile } from '@/types/database.types';
 
 type AuthContextType = {
   session: Session | null;
@@ -48,11 +39,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) throw error;
-      // Handle possible missing profile_photo field by providing a default empty value
-      setProfile({
-        ...data,
-        profile_photo: data.profile_photo || null
-      });
+      
+      setProfile(data as Profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
