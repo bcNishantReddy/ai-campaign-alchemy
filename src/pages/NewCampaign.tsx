@@ -59,7 +59,9 @@ const NewCampaign = () => {
       if (error) throw error;
       
       toast.success("Campaign created successfully!");
-      navigate(`/campaigns/${data.id}`);
+      if (data) {
+        navigate(`/campaigns/${data.id}`);
+      }
     } catch (error: any) {
       toast.error("Error creating campaign: " + error.message);
       console.error("Error creating campaign:", error);

@@ -43,3 +43,36 @@ export interface Email {
   created_at: string;
   updated_at: string;
 }
+
+// These type declarations help TypeScript recognize our database tables
+declare module '@supabase/supabase-js' {
+  export interface Database {
+    public: {
+      Tables: {
+        profiles: {
+          Row: Profile;
+          Insert: Omit<Profile, 'created_at' | 'updated_at'>;
+          Update: Partial<Omit<Profile, 'created_at' | 'updated_at'>>;
+        };
+        campaigns: {
+          Row: Campaign;
+          Insert: Omit<Campaign, 'created_at' | 'updated_at' | 'id'> & { id?: string };
+          Update: Partial<Omit<Campaign, 'created_at' | 'updated_at'>>;
+        };
+        prospects: {
+          Row: Prospect;
+          Insert: Omit<Prospect, 'created_at' | 'updated_at' | 'id' | 'additional_info'> & { 
+            id?: string;
+            additional_info?: Record<string, any>;
+          };
+          Update: Partial<Omit<Prospect, 'created_at' | 'updated_at'>>;
+        };
+        emails: {
+          Row: Email;
+          Insert: Omit<Email, 'created_at' | 'updated_at' | 'id'> & { id?: string };
+          Update: Partial<Omit<Email, 'created_at' | 'updated_at'>>;
+        };
+      };
+    };
+  }
+}

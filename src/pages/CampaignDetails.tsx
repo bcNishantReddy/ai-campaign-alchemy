@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign, Prospect, Email } from "@/types/database.types";
 import { Spinner } from "@/components/ui/spinner";
@@ -304,10 +304,12 @@ ${campaign?.company_name}`;
         
       if (error) throw error;
       
-      // Add the new prospect to the local state
-      setProspects([...prospects, { ...data, email_data: null }]);
-      
-      toast.success('Prospect added successfully');
+      if (data) {
+        // Add the new prospect to the local state
+        setProspects([...prospects, { ...data, email_data: null }]);
+        
+        toast.success('Prospect added successfully');
+      }
     } catch (error: any) {
       toast.error('Error adding prospect: ' + error.message);
       console.error('Error adding prospect:', error);
