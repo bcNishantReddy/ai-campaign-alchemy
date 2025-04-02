@@ -1,11 +1,25 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, User, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <nav className="bg-white/95 backdrop-blur-sm fixed w-full z-50 shadow-sm">
@@ -27,16 +41,41 @@ const Navbar = () => {
             <Link to="/#pricing" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple">
               Pricing
             </Link>
-            <Link to="/login">
-              <Button variant="outline" className="ml-2">
-                Log in
-              </Button>
-            </Link>
-            <Link to="/login?signup=true">
-              <Button className="bg-brand-purple hover:bg-brand-purple/90 text-white">
-                Sign up
-              </Button>
-            </Link>
+            
+            {user ? (
+              <>
+                <Link to="/dashboard" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple">
+                  Dashboard
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="ml-2">
+                      <User size={16} className="mr-2" />
+                      Account
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut size={16} className="mr-2" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" className="ml-2">
+                    Log in
+                  </Button>
+                </Link>
+                <Link to="/login?signup=true">
+                  <Button className="bg-brand-purple hover:bg-brand-purple/90 text-white">
+                    Sign up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
           
           <div className="md:hidden flex items-center">
@@ -75,20 +114,44 @@ const Navbar = () => {
             >
               Pricing
             </Link>
-            <Link 
-              to="/login" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Log in
-            </Link>
-            <Link 
-              to="/login?signup=true" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Sign up
-            </Link>
+            
+            {user ? (
+              <>
+                <Link 
+                  to="/dashboard" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/login" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Log in
+                </Link>
+                <Link 
+                  to="/login?signup=true" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -9,7 +9,157 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      campaigns: {
+        Row: {
+          company_description: string | null
+          company_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          representative_email: string | null
+          representative_name: string | null
+          representative_role: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_description?: string | null
+          company_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          representative_email?: string | null
+          representative_name?: string | null
+          representative_role?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_description?: string | null
+          company_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          representative_email?: string | null
+          representative_name?: string | null
+          representative_role?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          prospect_id: string
+          status: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          prospect_id: string
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          prospect_id?: string
+          status?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_description: string | null
+          created_at: string
+          id: string
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_description?: string | null
+          created_at?: string
+          id: string
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_description?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          additional_info: Json | null
+          campaign_id: string
+          company_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          additional_info?: Json | null
+          campaign_id: string
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          additional_info?: Json | null
+          campaign_id?: string
+          company_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

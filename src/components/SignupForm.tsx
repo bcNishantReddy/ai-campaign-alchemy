@@ -5,10 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Spinner } from "./ui/spinner";
 
 const SignupForm = () => {
   const [isSignup, setIsSignup] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -22,21 +25,40 @@ const SignupForm = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
       if (isSignup) {
+        const { error } = await signUp(
+          formData.email,
+          formData.password,
+          { 
+            name: formData.name,
+            company_description: formData.companyDescription
+          }
+        );
+        
+        if (error) {
+          throw error;
+        }
+        
         toast.success("Account created successfully! Redirecting to dashboard...");
-        // In a real app, you'd redirect to dashboard or send verification email
       } else {
+        const { error } = await signIn(formData.email, formData.password);
+        
+        if (error) {
+          throw error;
+        }
+        
         toast.success("Logged in successfully! Redirecting to dashboard...");
-        // In a real app, you'd redirect to dashboard
       }
-    }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || "Authentication failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,6 +86,7 @@ const SignupForm = () => {
               required={isSignup}
               value={formData.name}
               onChange={handleChange}
+              disabled={isLoading}
             />
           </div>
         )}
@@ -78,6 +101,7 @@ const SignupForm = () => {
             required
             value={formData.email}
             onChange={handleChange}
+            disabled={isLoading}
           />
         </div>
         
@@ -101,6 +125,7 @@ const SignupForm = () => {
             required
             value={formData.password}
             onChange={handleChange}
+            disabled={isLoading}
           />
         </div>
         
@@ -115,6 +140,7 @@ const SignupForm = () => {
               value={formData.companyDescription}
               onChange={handleChange}
               className="min-h-24"
+              disabled={isLoading}
             />
           </div>
         )}
@@ -124,6 +150,7 @@ const SignupForm = () => {
           className="w-full bg-brand-purple hover:bg-brand-purple/90"
           disabled={isLoading}
         >
+          {isLoading ? <Spinner size="sm" className="mr-2" /> : null}
           {isLoading ? "Processing..." : isSignup ? "Create Account" : "Log In"}
         </Button>
       </form>
@@ -136,6 +163,7 @@ const SignupForm = () => {
             type="button"
             onClick={() => setIsSignup(!isSignup)}
             className="text-brand-purple hover:text-brand-purple/80 font-medium"
+            disabled={isLoading}
           >
             {isSignup ? "Log in" : "Sign up"}
           </button>
