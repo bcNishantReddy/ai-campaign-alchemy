@@ -1,4 +1,3 @@
-
 import { useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -8,16 +7,14 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Check, LineChart, Lock } from "lucide-react";
-
 const Index = () => {
   const featuresRef = useRef<HTMLDivElement>(null);
-
   const scrollToFeatures = () => {
-    featuresRef.current?.scrollIntoView({ behavior: "smooth" });
+    featuresRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
   };
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  return <div className="min-h-screen flex flex-col">
       <Navbar />
 
       <main className="flex-grow">
@@ -69,7 +66,8 @@ const Index = () => {
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900">Starter</h3>
                   <p className="mt-4 flex items-baseline text-gray-900">
-                    <span className="text-5xl font-extrabold tracking-tight">$99</span>
+                    <span className="text-5xl font-extrabold tracking-tight">₹0
+                  </span>
                     <span className="ml-1 text-xl font-semibold">/month</span>
                   </p>
                   <p className="mt-6 text-gray-500">Perfect for small teams starting with AI-powered sales outreach.</p>
@@ -253,10 +251,7 @@ const Index = () => {
                 </Link>
               </div>
               <div className="ml-3 inline-flex rounded-md shadow">
-                <a
-                  href="#"
-                  className="py-4 px-6 text-base font-medium rounded-md text-white bg-brand-blue hover:bg-brand-blue/90"
-                >
+                <a href="#" className="py-4 px-6 text-base font-medium rounded-md text-white bg-brand-blue hover:bg-brand-blue/90">
                   Learn more
                 </a>
               </div>
@@ -266,8 +261,6 @@ const Index = () => {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
