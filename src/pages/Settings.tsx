@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,7 +39,7 @@ const passwordSchema = z.object({
 });
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -79,7 +78,6 @@ const Settings = () => {
       try {
         setLoading(true);
         
-        // Fetch profile data
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
@@ -98,7 +96,6 @@ const Settings = () => {
         }
         
         try {
-          // Query for user_api_keys using custom approach
           const { data: apiKeysData, error: apiKeysError } = await supabase
             .from("user_api_keys")
             .select("*")
@@ -147,7 +144,6 @@ const Settings = () => {
       
       toast.success("Profile updated successfully");
       
-      // Update local profile state
       if (profile) {
         setProfile({
           ...profile,
@@ -166,9 +162,7 @@ const Settings = () => {
     try {
       if (!user) return;
       
-      // Using a custom query approach for user_api_keys
       if (apiKeys) {
-        // Update existing API keys
         const { error } = await supabase
           .from("user_api_keys")
           .update({
@@ -180,7 +174,6 @@ const Settings = () => {
           
         if (error) throw error;
       } else {
-        // Insert new API keys
         const { error } = await supabase
           .from("user_api_keys")
           .insert({
@@ -193,7 +186,6 @@ const Settings = () => {
           
         if (error) throw error;
         
-        // Fetch the newly created API keys
         try {
           const { data, error: fetchError } = await supabase
             .from("user_api_keys")
@@ -239,14 +231,12 @@ const Settings = () => {
     try {
       setUploadingPhoto(true);
       
-      // Create a unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
       
       console.log("Uploading file:", filePath);
       
-      // Upload file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('profiles')
         .upload(filePath, file, {
@@ -261,14 +251,12 @@ const Settings = () => {
       
       console.log("Upload successful:", data);
       
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profiles')
         .getPublicUrl(filePath);
       
       console.log("Public URL:", publicUrl);
       
-      // Update profile with new photo URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
@@ -282,7 +270,6 @@ const Settings = () => {
         throw updateError;
       }
       
-      // Update local state
       if (profile) {
         setProfile({
           ...profile,
@@ -291,7 +278,6 @@ const Settings = () => {
         });
       }
       
-      // Refresh profile in auth context
       await refreshProfile();
       
       toast.success("Profile photo updated successfully");
