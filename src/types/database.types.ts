@@ -7,6 +7,9 @@ export interface Profile {
   updated_at: string;
 }
 
+// Import Json type from Supabase for compatibility
+import { Json } from "@/integrations/supabase/types";
+
 export interface Campaign {
   id: string;
   user_id: string;
@@ -29,7 +32,7 @@ export interface Prospect {
   name: string | null;
   email: string | null;
   role: string | null;
-  additional_info: Record<string, any>;
+  additional_info: Json | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,9 +64,9 @@ declare module '@supabase/supabase-js' {
         };
         prospects: {
           Row: Prospect;
-          Insert: Omit<Prospect, 'created_at' | 'updated_at' | 'id' | 'additional_info'> & { 
+          Insert: Omit<Prospect, 'created_at' | 'updated_at' | 'id'> & { 
             id?: string;
-            additional_info?: Record<string, any>;
+            additional_info?: Json;
           };
           Update: Partial<Omit<Prospect, 'created_at' | 'updated_at'>>;
         };

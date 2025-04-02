@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -97,7 +96,7 @@ const CampaignDetails = () => {
             return {
               ...prospect,
               email_data: emailData || null
-            };
+            } as ProspectWithEmail;
           })
         );
         
@@ -306,7 +305,7 @@ ${campaign?.company_name}`;
       
       if (data) {
         // Add the new prospect to the local state
-        setProspects([...prospects, { ...data, email_data: null }]);
+        setProspects([...prospects, { ...data, email_data: null } as ProspectWithEmail]);
         
         toast.success('Prospect added successfully');
       }
