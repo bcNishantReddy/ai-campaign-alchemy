@@ -40,7 +40,6 @@ export interface Profile {
   profile_photo: string;
 }
 
-// Updated UserApiKeys interface
 export interface UserApiKeys {
   id: string;
   user_id: string;

@@ -80,7 +80,7 @@ const CampaignDetails = () => {
         .single();
         
       if (campaignError) throw campaignError;
-      setCampaign(campaignData);
+      setCampaign(campaignData as Campaign);
       
       // Fetch prospects with their emails
       const { data: prospectsData, error: prospectsError } = await supabase
@@ -309,13 +309,21 @@ const CampaignDetails = () => {
         
       if (error) throw error;
       
-      // Update the prospects in local state
-      const updatedProspects = [...prospects];
-      const index = updatedProspects.findIndex(p => p.id === selectedProspect.id);
-      if (index !== -1 && updatedProspects[index].email_data) {
-        updatedProspects[index].email_data!.status = 'rejected';
-        setProspects(updatedProspects);
-      }
+      // Update the prospects in local state with proper type assertion
+      const updatedProspects = prospects.map(p => {
+        if (p.id === selectedProspect.id && p.email_data) {
+          return {
+            ...p,
+            email_data: {
+              ...p.email_data,
+              status: 'rejected'
+            }
+          } as ProspectWithEmail;
+        }
+        return p;
+      });
+      
+      setProspects(updatedProspects);
       
       toast.success('Email rejected and marked for revision');
       setEmailDialogOpen(false);

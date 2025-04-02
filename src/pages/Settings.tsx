@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -138,6 +139,7 @@ const Settings = () => {
         .update({
           name: values.name,
           company_description: values.company_description,
+          updated_at: new Date().toISOString()
         })
         .eq("id", user.id);
         
@@ -151,6 +153,7 @@ const Settings = () => {
           ...profile,
           name: values.name,
           company_description: values.company_description,
+          updated_at: new Date().toISOString()
         });
       }
     } catch (error: any) {
@@ -171,6 +174,7 @@ const Settings = () => {
           .update({
             mailjet_api_key: values.mailjet_api_key,
             mailjet_secret_key: values.mailjet_secret_key,
+            updated_at: new Date().toISOString()
           })
           .eq("id", apiKeys.id);
           
@@ -183,6 +187,8 @@ const Settings = () => {
             user_id: user.id,
             mailjet_api_key: values.mailjet_api_key,
             mailjet_secret_key: values.mailjet_secret_key,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           });
           
         if (error) throw error;
