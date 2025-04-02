@@ -10,16 +10,46 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface Profile {
+  id: string;
+  name: string | null;
+  company_description: string | null;
+  profile_photo: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const fetchCampaigns = async () => {
+    const fetchData = async () => {
       try {
+        setIsLoading(true);
+        
+        // Fetch profile
+        if (user) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+            
+          if (profileError) {
+            console.error("Error fetching profile:", profileError);
+          } else {
+            setProfile(profileData);
+          }
+        }
+        
+        // Fetch campaigns
         const { data, error } = await supabase
           .from('campaigns')
           .select('*')
@@ -35,8 +65,28 @@ const Dashboard = () => {
       }
     };
 
-    fetchCampaigns();
-  }, []);
+    fetchData();
+  }, [user]);
+
+  const getUserInitial = () => {
+    if (profile?.name) {
+      return profile.name.charAt(0).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  const getUserDisplayName = () => {
+    if (profile?.name) {
+      return profile.name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return "User";
+  };
 
   const filteredCampaigns = campaigns.filter(campaign => 
     campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -53,11 +103,15 @@ const Dashboard = () => {
           <div className="bg-gray-900 text-white p-4 rounded-t-lg mb-8">
             <div className="flex items-center">
               <Avatar className="h-10 w-10 bg-brand-purple mr-3">
-                <AvatarFallback>AC</AvatarFallback>
+                {profile?.profile_photo ? (
+                  <AvatarImage src={profile.profile_photo} alt={getUserDisplayName()} />
+                ) : (
+                  <AvatarFallback>{getUserInitial()}</AvatarFallback>
+                )}
               </Avatar>
               <div>
                 <h1 className="text-xl font-bold">AI Campaign Dashboard</h1>
-                <p className="text-sm text-gray-300">Welcome back, Alex</p>
+                <p className="text-sm text-gray-300">Welcome back, {getUserDisplayName()}</p>
               </div>
             </div>
           </div>

@@ -12,6 +12,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CampaignDetails from "./pages/CampaignDetails";
 import NewCampaign from "./pages/NewCampaign";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,11 @@ const AppRoutes = () => (
     <Route path="/campaigns/:id" element={
       <ProtectedRoute>
         <CampaignDetails />
+      </ProtectedRoute>
+    } />
+    <Route path="/settings" element={
+      <ProtectedRoute>
+        <Settings />
       </ProtectedRoute>
     } />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
