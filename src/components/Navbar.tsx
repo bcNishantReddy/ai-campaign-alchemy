@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, User, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -11,14 +11,44 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
-const Navbar = () => {
+interface NavbarProps {
+  onFeaturesClick?: () => void;
+  onPricingClick?: () => void;
+}
+
+const Navbar = ({ onFeaturesClick, onPricingClick }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleFeatureClick = (e: React.MouseEvent) => {
+    if (location.pathname !== "/") {
+      // If not on home page, navigate to home page with features hash
+      navigate("/#features");
+    } else if (onFeaturesClick) {
+      // If on home page, scroll to features section
+      e.preventDefault();
+      onFeaturesClick();
+    }
+    setIsMenuOpen(false);
+  };
+
+  const handlePricingClick = (e: React.MouseEvent) => {
+    if (location.pathname !== "/") {
+      // If not on home page, navigate to home page with pricing hash
+      navigate("/#pricing");
+    } else if (onPricingClick) {
+      // If on home page, scroll to pricing section
+      e.preventDefault();
+      onPricingClick();
+    }
+    setIsMenuOpen(false);
   };
 
   return (
@@ -35,12 +65,20 @@ const Navbar = () => {
             <Link to="/" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple">
               Home
             </Link>
-            <Link to="/#features" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple">
+            <a 
+              href="/#features" 
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple"
+              onClick={handleFeatureClick}
+            >
               Features
-            </Link>
-            <Link to="/#pricing" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple">
+            </a>
+            <a 
+              href="/#pricing" 
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-purple"
+              onClick={handlePricingClick}
+            >
               Pricing
-            </Link>
+            </a>
             
             {user ? (
               <>
@@ -104,20 +142,20 @@ const Navbar = () => {
             >
               Home
             </Link>
-            <Link 
-              to="/#features" 
+            <a 
+              href="/#features" 
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={handleFeatureClick}
             >
               Features
-            </Link>
-            <Link 
-              to="/#pricing" 
+            </a>
+            <a 
+              href="/#pricing" 
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-purple hover:bg-gray-50"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={handlePricingClick}
             >
               Pricing
-            </Link>
+            </a>
             
             {user ? (
               <>

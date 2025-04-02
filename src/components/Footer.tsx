@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Mail, Twitter, Linkedin, Github } from "lucide-react";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -15,19 +17,19 @@ const Footer = () => {
               </p>
             </div>
             <div className="flex space-x-6">
-              <a href="#" className="text-gray-400 hover:text-gray-500">
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-500">
                 <span className="sr-only">Twitter</span>
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-gray-500">
+              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-500">
                 <span className="sr-only">LinkedIn</span>
                 <Linkedin size={20} />
               </a>
-              <a href="#" className="text-gray-400 hover:text-gray-500">
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-500">
                 <span className="sr-only">GitHub</span>
                 <Github size={20} />
               </a>
-              <a href="mailto:info@youraicampaign.com" className="text-gray-400 hover:text-gray-500">
+              <a href="mailto:krocodileai@gmail.com" className="text-gray-400 hover:text-gray-500">
                 <span className="sr-only">Email</span>
                 <Mail size={20} />
               </a>
@@ -41,24 +43,24 @@ const Footer = () => {
                 </h3>
                 <ul className="mt-4 space-y-4">
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/solutions/sales-outreach" className="text-base text-gray-500 hover:text-gray-900">
                       Sales Outreach
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/solutions/lead-generation" className="text-base text-gray-500 hover:text-gray-900">
                       Lead Generation
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/solutions/email-campaigns" className="text-base text-gray-500 hover:text-gray-900">
                       Email Campaigns
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/solutions/campaign-analytics" className="text-base text-gray-500 hover:text-gray-900">
                       Campaign Analytics
-                    </a>
+                    </Link>
                   </li>
                 </ul>
               </div>
@@ -68,22 +70,22 @@ const Footer = () => {
                 </h3>
                 <ul className="mt-4 space-y-4">
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/support/documentation" className="text-base text-gray-500 hover:text-gray-900">
                       Documentation
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/support/guides" className="text-base text-gray-500 hover:text-gray-900">
                       Guides
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/support/api-status" className="text-base text-gray-500 hover:text-gray-900">
                       API Status
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <a href="mailto:krocodileai@gmail.com?subject=Support%20Request" className="text-base text-gray-500 hover:text-gray-900">
                       Contact Support
                     </a>
                   </li>
@@ -97,24 +99,24 @@ const Footer = () => {
                 </h3>
                 <ul className="mt-4 space-y-4">
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/company/about" className="text-base text-gray-500 hover:text-gray-900">
                       About
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/company/blog" className="text-base text-gray-500 hover:text-gray-900">
                       Blog
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/company/jobs" className="text-base text-gray-500 hover:text-gray-900">
                       Jobs
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/company/press" className="text-base text-gray-500 hover:text-gray-900">
                       Press
-                    </a>
+                    </Link>
                   </li>
                 </ul>
               </div>
@@ -124,19 +126,19 @@ const Footer = () => {
                 </h3>
                 <ul className="mt-4 space-y-4">
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/legal/privacy" className="text-base text-gray-500 hover:text-gray-900">
                       Privacy
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/legal/terms" className="text-base text-gray-500 hover:text-gray-900">
                       Terms
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="#" className="text-base text-gray-500 hover:text-gray-900">
+                    <Link to="/legal/cookie-policy" className="text-base text-gray-500 hover:text-gray-900">
                       Cookie Policy
-                    </a>
+                    </Link>
                   </li>
                 </ul>
               </div>
@@ -145,7 +147,7 @@ const Footer = () => {
         </div>
         <div className="mt-12 border-t border-gray-200 pt-8">
           <p className="text-base text-gray-400 xl:text-center">
-            &copy; {new Date().getFullYear()} youraicampaign.com. All rights reserved.
+            &copy; {currentYear} youraicampaign.com. All rights reserved.
           </p>
         </div>
       </div>

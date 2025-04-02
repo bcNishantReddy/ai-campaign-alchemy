@@ -1,3 +1,4 @@
+
 import { useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -7,15 +8,25 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Check, LineChart, Lock } from "lucide-react";
+
 const Index = () => {
   const featuresRef = useRef<HTMLDivElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
+  
   const scrollToFeatures = () => {
     featuresRef.current?.scrollIntoView({
       behavior: "smooth"
     });
   };
+
+  const scrollToPricing = () => {
+    pricingRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
+  };
+
   return <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <Navbar onFeaturesClick={scrollToFeatures} onPricingClick={scrollToPricing} />
 
       <main className="flex-grow">
         {/* Hero Section */}
@@ -46,7 +57,7 @@ const Index = () => {
         </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-16 bg-gray-50">
+        <section id="pricing" ref={pricingRef} className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h2 className="text-base font-semibold text-brand-purple uppercase tracking-wide">
@@ -61,46 +72,46 @@ const Index = () => {
             </div>
 
             <div className="mt-12 space-y-12 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-8">
-              {/* Starter Plan */}
+              {/* Free Plan */}
               <div className="p-8 bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col">
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">Starter</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">Free</h3>
                   <p className="mt-4 flex items-baseline text-gray-900">
-                    <span className="text-5xl font-extrabold tracking-tight">$99</span>
+                    <span className="text-5xl font-extrabold tracking-tight">₹0</span>
                     <span className="ml-1 text-xl font-semibold">/month</span>
                   </p>
-                  <p className="mt-6 text-gray-500">Perfect for small teams starting with AI-powered sales outreach.</p>
+                  <p className="mt-6 text-gray-500">Perfect for individuals exploring AI-powered sales outreach.</p>
 
                   <ul className="mt-6 space-y-4">
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <Check className="h-5 w-5 text-green-500" />
                       </div>
-                      <p className="ml-3 text-sm text-gray-700">1,000 emails per month</p>
+                      <p className="ml-3 text-sm text-gray-700">100 emails per month</p>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <Check className="h-5 w-5 text-green-500" />
                       </div>
-                      <p className="ml-3 text-sm text-gray-700">AI-generated emails</p>
+                      <p className="ml-3 text-sm text-gray-700">Basic AI email generation</p>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <Check className="h-5 w-5 text-green-500" />
                       </div>
-                      <p className="ml-3 text-sm text-gray-700">Basic analytics</p>
+                      <p className="ml-3 text-sm text-gray-700">Limited analytics</p>
                     </li>
                     <li className="flex items-start">
                       <div className="flex-shrink-0">
                         <Check className="h-5 w-5 text-green-500" />
                       </div>
-                      <p className="ml-3 text-sm text-gray-700">3 team members</p>
+                      <p className="ml-3 text-sm text-gray-700">1 team member</p>
                     </li>
                   </ul>
                 </div>
 
                 <div className="mt-8">
-                  <Link to="/login?signup=true&plan=starter">
+                  <Link to="/login?signup=true&plan=free">
                     <Button variant="outline" className="w-full">
                       Get Started
                     </Button>
@@ -108,7 +119,7 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Professional Plan */}
+              {/* Pro Plan */}
               <div className="p-8 bg-white border-2 border-brand-purple rounded-lg shadow-md flex flex-col relative">
                 <div className="absolute top-0 inset-x-0 transform -translate-y-1/2">
                   <div className="inline-block px-4 py-1 text-sm font-semibold uppercase tracking-wider text-white bg-brand-purple rounded-full">
@@ -116,9 +127,9 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">₹1999</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">Pro</h3>
                   <p className="mt-4 flex items-baseline text-gray-900">
-                    <span className="text-5xl font-extrabold tracking-tight">$249</span>
+                    <span className="text-5xl font-extrabold tracking-tight">₹1999</span>
                     <span className="ml-1 text-xl font-semibold">/month</span>
                   </p>
                   <p className="mt-6 text-gray-500">Advanced features for growing sales teams with higher volume needs.</p>
@@ -178,8 +189,7 @@ const Index = () => {
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-900">Enterprise</h3>
                   <p className="mt-4 flex items-baseline text-gray-900">
-                    <span className="text-5xl font-extrabold tracking-tight">$599</span>
-                    <span className="ml-1 text-xl font-semibold">/month</span>
+                    <span className="text-2xl font-extrabold tracking-tight">Custom Pricing</span>
                   </p>
                   <p className="mt-6 text-gray-500">Custom solutions for large organizations with complex sales needs.</p>
 
@@ -223,11 +233,11 @@ const Index = () => {
                   </ul>
                 </div>
                 <div className="mt-8">
-                  <Link to="/login?signup=true&plan=enterprise">
+                  <a href="mailto:krocodileai@gmail.com?subject=Enterprise%20Plan%20Inquiry&body=I'm%20interested%20in%20learning%20more%20about%20the%20Enterprise%20plan.">
                     <Button variant="outline" className="w-full">
                       Contact Sales
                     </Button>
-                  </Link>
+                  </a>
                 </div>
               </div>
             </div>
@@ -250,7 +260,7 @@ const Index = () => {
                 </Link>
               </div>
               <div className="ml-3 inline-flex rounded-md shadow">
-                <a href="#" className="py-4 px-6 text-base font-medium rounded-md text-white bg-brand-blue hover:bg-brand-blue/90">
+                <a href="mailto:krocodileai@gmail.com" className="py-4 px-6 text-base font-medium rounded-md text-white bg-brand-blue hover:bg-brand-blue/90">
                   Learn more
                 </a>
               </div>
@@ -262,4 +272,5 @@ const Index = () => {
       <Footer />
     </div>;
 };
+
 export default Index;

@@ -13,6 +13,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import CampaignDetails from "./pages/CampaignDetails";
 import NewCampaign from "./pages/NewCampaign";
 import Settings from "./pages/Settings";
+import SolutionsPage from "./pages/SolutionsPage";
+import SupportPage from "./pages/SupportPage";
+import CompanyPage from "./pages/CompanyPage";
+import LegalPage from "./pages/LegalPage";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +44,13 @@ const AppRoutes = () => (
         <Settings />
       </ProtectedRoute>
     } />
+    
+    {/* Footer page routes */}
+    <Route path="/solutions/:solutionType" element={<SolutionsPage />} />
+    <Route path="/support/:supportType" element={<SupportPage />} />
+    <Route path="/company/:pageType" element={<CompanyPage />} />
+    <Route path="/legal/:documentType" element={<LegalPage />} />
+    
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
