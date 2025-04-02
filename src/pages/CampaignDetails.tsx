@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import AddProspectDialog from "@/components/AddProspectDialog";
 import ImportProspectsSheet from "@/components/ImportProspectsSheet";
 import ProspectRequirements from "@/components/ProspectRequirements";
+import { generateEmail, sendEmail } from "@/services/emailService";
 
 type ProspectWithEmail = Prospect & {
   email_data: Email | null;
@@ -64,6 +66,8 @@ const CampaignDetails = () => {
   const [addProspectDialogOpen, setAddProspectDialogOpen] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
+  // New state for API keys
+  const [mailjetKeys, setMailjetKeys] = useState<{api_key: string; secret_key: string} | null>(null);
 
   const fetchCampaignData = async () => {
     if (!id) return;
@@ -106,6 +110,22 @@ const CampaignDetails = () => {
       );
       
       setProspects(prospectsWithEmails);
+      
+      // Fetch Mailjet API keys if available
+      if (campaignData.user_id) {
+        const { data: apiKeysData } = await supabase
+          .from('user_api_keys')
+          .select('mailjet_api_key, mailjet_secret_key')
+          .eq('user_id', campaignData.user_id)
+          .maybeSingle();
+          
+        if (apiKeysData) {
+          setMailjetKeys({
+            api_key: apiKeysData.mailjet_api_key,
+            secret_key: apiKeysData.mailjet_secret_key
+          });
+        }
+      }
     } catch (error: any) {
       toast.error('Error loading campaign: ' + error.message);
       console.error('Error loading campaign:', error);
@@ -141,57 +161,64 @@ const CampaignDetails = () => {
   };
 
   const generateEmailForProspect = async (prospect: ProspectWithEmail) => {
+    if (!campaign) return;
+    
     setSelectedProspect(prospect);
     setIsGeneratingEmail(true);
     
     try {
-      // In a real app, this would call an AI service to generate the email
-      // For demo purposes, we'll simulate email generation
-      
-      // Generate a subject based on campaign and prospect
-      const subject = `${campaign?.company_name} - Opportunity for ${prospect.company_name}`;
-      
-      // Generate email body
-      const body = `Dear ${prospect.name},
-
-I hope this email finds you well. My name is ${campaign?.representative_name} from ${campaign?.company_name}, and I wanted to reach out because I believe our services could greatly benefit ${prospect.company_name}.
-
-${campaign?.description}
-
-Would you be available for a brief call next week to discuss how we might be able to help your team?
-
-Best regards,
-${campaign?.representative_name}
-${campaign?.representative_role}
-${campaign?.company_name}`;
-
-      setEmailContent({
-        subject,
-        body
-      });
-      
-      // Check if email already exists
-      if (!prospect.email_data) {
-        // Create a new email in the database
-        const { data: emailData, error } = await supabase
-          .from('emails')
-          .insert({
-            prospect_id: prospect.id,
-            subject,
-            body,
-            status: 'draft'
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        // Update the prospect in the local state
-        setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: emailData } : p
-        ));
+      // If the prospect already has an email, just display it
+      if (prospect.email_data) {
+        setEmailContent({
+          subject: prospect.email_data.subject,
+          body: prospect.email_data.body
+        });
+        setEmailDialogOpen(true);
+        return;
       }
       
+      // Prepare data for the API call
+      const generationData = {
+        company_name: campaign.company_name,
+        company_description: campaign.company_description,
+        campaign_description: campaign.description,
+        company_rep_name: campaign.representative_name,
+        company_rep_role: campaign.representative_role,
+        company_rep_email: campaign.representative_email,
+        prospect_company_name: prospect.company_name,
+        prospect_rep_name: prospect.name,
+        prospect_rep_email: prospect.email
+      };
+      
+      // Call the API
+      const generatedEmail = await generateEmail(generationData);
+      
+      // Update the state with the API response
+      setEmailContent({
+        subject: generatedEmail.subject,
+        body: generatedEmail.body
+      });
+      
+      // Create a new email record in the database
+      const { data: emailData, error } = await supabase
+        .from('emails')
+        .insert({
+          prospect_id: prospect.id,
+          subject: generatedEmail.subject,
+          body: generatedEmail.body,
+          status: 'draft'
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      // Update the prospect in the local state
+      setProspects(prospects.map(p => 
+        p.id === prospect.id ? { ...p, email_data: emailData } : p
+      ));
+      
+      // Open the email dialog
       setEmailDialogOpen(true);
     } catch (error: any) {
       toast.error('Error generating email: ' + error.message);
@@ -202,7 +229,7 @@ ${campaign?.company_name}`;
   };
 
   const approveEmail = async () => {
-    if (!selectedProspect?.email_data?.id) return;
+    if (!selectedProspect?.email_data?.id || !campaign) return;
     
     try {
       setIsApproving(true);
@@ -229,32 +256,46 @@ ${campaign?.company_name}`;
       toast.success('Email approved successfully');
       setEmailDialogOpen(false);
       
-      // In a real app, this would trigger sending the email
-      // For demo purposes, we'll just simulate a sent status after a delay
-      setTimeout(async () => {
-        try {
-          const { data, error } = await supabase
-            .from('emails')
-            .update({ status: 'sent' })
-            .eq('id', selectedProspect.email_data!.id)
-            .select()
-            .single();
-            
-          if (error) throw error;
-          
-          // Update the prospect in the local state
-          setProspects(prospects.map(p => 
-            p.id === selectedProspect.id ? { ...p, email_data: data } : p
-          ));
-          
-          toast.success(`Email sent to ${selectedProspect.name}`);
-        } catch (error: any) {
-          console.error('Error updating email status:', error);
-        }
-      }, 2000);
+      // Check if we have Mailjet API keys
+      if (!mailjetKeys || !mailjetKeys.api_key || !mailjetKeys.secret_key) {
+        toast.warning('Mailjet API keys not found. Please add them in settings to send emails.');
+        return;
+      }
+      
+      // Send the email via Mailjet
+      const sendData = {
+        from_email: campaign.representative_email,
+        from_name: campaign.representative_name,
+        to_email: selectedProspect.email,
+        to_name: selectedProspect.name,
+        subject: emailContent.subject,
+        body: emailContent.body,
+        mailjet_api_key: mailjetKeys.api_key,
+        mailjet_api_secret: mailjetKeys.secret_key
+      };
+      
+      // Call the send email API
+      const response = await sendEmail(sendData);
+      
+      // Update email status to sent
+      const { data, error: updateError } = await supabase
+        .from('emails')
+        .update({ status: 'sent' })
+        .eq('id', selectedProspect.email_data.id)
+        .select()
+        .single();
+        
+      if (updateError) throw updateError;
+      
+      // Update the prospect in the local state
+      setProspects(prospects.map(p => 
+        p.id === selectedProspect.id ? { ...p, email_data: data } : p
+      ));
+      
+      toast.success(`Email sent to ${selectedProspect.name}`);
     } catch (error: any) {
-      toast.error('Error approving email: ' + error.message);
-      console.error('Error approving email:', error);
+      toast.error('Error approving/sending email: ' + error.message);
+      console.error('Error approving/sending email:', error);
     } finally {
       setIsApproving(false);
     }
@@ -404,6 +445,27 @@ ${campaign?.company_name}`;
                     <span className="font-medium">Email:</span> {campaign.representative_email || 'Not specified'}
                   </p>
                 </div>
+              </div>
+            </div>
+            
+            {/* API Keys Status */}
+            <div className="px-6 py-3 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Email Sending Status</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {mailjetKeys && mailjetKeys.api_key && mailjetKeys.secret_key 
+                      ? "Mailjet API keys configured. Email sending is enabled." 
+                      : "Mailjet API keys not configured. Please add them in Settings to enable email sending."}
+                  </p>
+                </div>
+                {(!mailjetKeys || !mailjetKeys.api_key || !mailjetKeys.secret_key) && (
+                  <Link to="/settings">
+                    <Button variant="outline" size="sm">
+                      Configure in Settings
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

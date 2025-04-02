@@ -1,96 +1,48 @@
-
-// Import Json type from Supabase for compatibility
-import { Json } from "@/integrations/supabase/types";
-
-export interface Profile {
-  id: string;
-  name: string | null;
-  company_description: string | null;
-  profile_photo: string | null;  // Changed from optional to nullable to match DB
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Campaign {
   id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  company_name: string | null;
-  company_description: string | null;
-  representative_name: string | null;
-  representative_role: string | null;
-  representative_email: string | null;
-  status: string;
   created_at: string;
-  updated_at: string;
+  name: string;
+  description: string;
+  company_name: string;
+  company_description: string;
+  representative_name: string;
+  representative_role: string;
+  representative_email: string;
+  user_id: string;
 }
 
 export interface Prospect {
   id: string;
-  campaign_id: string;
-  company_name: string | null;
-  name: string | null;
-  email: string | null;
-  role: string | null;
-  additional_info: Json | null;
   created_at: string;
-  updated_at: string;
+  name: string;
+  role: string;
+  email: string;
+  company_name: string;
+  campaign_id: string;
 }
 
 export interface Email {
   id: string;
-  prospect_id: string;
-  subject: string | null;
-  body: string | null;
-  status: string;
   created_at: string;
-  updated_at: string;
+  prospect_id: string;
+  subject: string;
+  body: string;
+  status: 'draft' | 'approved' | 'sent' | 'rejected';
 }
 
+export interface Profile {
+  id: string;
+  updated_at: string;
+  name: string;
+  company_description: string;
+  profile_photo: string;
+}
+
+// Updated UserApiKeys interface
 export interface UserApiKeys {
   id: string;
   user_id: string;
-  mailjet_api_key: string | null;
-  mailjet_secret_key: string | null;
+  mailjet_api_key: string;
+  mailjet_secret_key: string;
   created_at: string;
-  updated_at: string;
-}
-
-// These type declarations help TypeScript recognize our database tables
-declare module '@supabase/supabase-js' {
-  export interface Database {
-    public: {
-      Tables: {
-        profiles: {
-          Row: Profile;
-          Insert: Omit<Profile, 'created_at' | 'updated_at'>;
-          Update: Partial<Omit<Profile, 'created_at' | 'updated_at'>>;
-        };
-        campaigns: {
-          Row: Campaign;
-          Insert: Omit<Campaign, 'created_at' | 'updated_at' | 'id'> & { id?: string };
-          Update: Partial<Omit<Campaign, 'created_at' | 'updated_at'>>;
-        };
-        prospects: {
-          Row: Prospect;
-          Insert: Omit<Prospect, 'created_at' | 'updated_at' | 'id'> & { 
-            id?: string;
-            additional_info?: Json;
-          };
-          Update: Partial<Omit<Prospect, 'created_at' | 'updated_at'>>;
-        };
-        emails: {
-          Row: Email;
-          Insert: Omit<Email, 'created_at' | 'updated_at' | 'id'> & { id?: string };
-          Update: Partial<Omit<Email, 'created_at' | 'updated_at'>>;
-        };
-        user_api_keys: {
-          Row: UserApiKeys;
-          Insert: Omit<UserApiKeys, 'created_at' | 'updated_at' | 'id'> & { id?: string };
-          Update: Partial<Omit<UserApiKeys, 'created_at' | 'updated_at'>>;
-        };
-      };
-    };
-  }
 }
