@@ -38,6 +38,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import AddProspectDialog from "@/components/AddProspectDialog";
+import ImportProspectsSheet from "@/components/ImportProspectsSheet";
+import ProspectRequirements from "@/components/ProspectRequirements";
 
 type ProspectWithEmail = Prospect & {
   email_data: Email | null;
@@ -58,58 +61,61 @@ const CampaignDetails = () => {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [addProspectDialogOpen, setAddProspectDialogOpen] = useState(false);
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [showRequirements, setShowRequirements] = useState(false);
+
+  const fetchCampaignData = async () => {
+    if (!id) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Fetch campaign details
+      const { data: campaignData, error: campaignError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (campaignError) throw campaignError;
+      setCampaign(campaignData);
+      
+      // Fetch prospects with their emails
+      const { data: prospectsData, error: prospectsError } = await supabase
+        .from('prospects')
+        .select('*')
+        .eq('campaign_id', id);
+        
+      if (prospectsError) throw prospectsError;
+      
+      // For each prospect, fetch their email
+      const prospectsWithEmails = await Promise.all(
+        (prospectsData || []).map(async (prospect) => {
+          const { data: emailData } = await supabase
+            .from('emails')
+            .select('*')
+            .eq('prospect_id', prospect.id)
+            .maybeSingle();
+            
+          return {
+            ...prospect,
+            email_data: emailData || null
+          } as ProspectWithEmail;
+        })
+      );
+      
+      setProspects(prospectsWithEmails);
+    } catch (error: any) {
+      toast.error('Error loading campaign: ' + error.message);
+      console.error('Error loading campaign:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!id) return;
-
-    const fetchCampaignDetails = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch campaign details
-        const { data: campaignData, error: campaignError } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (campaignError) throw campaignError;
-        setCampaign(campaignData);
-        
-        // Fetch prospects with their emails
-        const { data: prospectsData, error: prospectsError } = await supabase
-          .from('prospects')
-          .select('*')
-          .eq('campaign_id', id);
-          
-        if (prospectsError) throw prospectsError;
-        
-        // For each prospect, fetch their email
-        const prospectsWithEmails = await Promise.all(
-          (prospectsData || []).map(async (prospect) => {
-            const { data: emailData } = await supabase
-              .from('emails')
-              .select('*')
-              .eq('prospect_id', prospect.id)
-              .maybeSingle();
-              
-            return {
-              ...prospect,
-              email_data: emailData || null
-            } as ProspectWithEmail;
-          })
-        );
-        
-        setProspects(prospectsWithEmails);
-      } catch (error: any) {
-        toast.error('Error loading campaign: ' + error.message);
-        console.error('Error loading campaign:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCampaignDetails();
+    fetchCampaignData();
   }, [id]);
 
   const deleteCampaign = async () => {
@@ -281,38 +287,8 @@ ${campaign?.company_name}`;
     }
   };
 
-  const handleAddProspect = async () => {
-    try {
-      if (!id) return;
-      
-      // In a real app, this would be a form or file upload
-      // For demo purposes, we'll add a sample prospect
-      const newProspect = {
-        campaign_id: id,
-        company_name: "Sample Company",
-        name: "John Doe",
-        email: "john.doe@samplecompany.com",
-        role: "CTO"
-      };
-      
-      const { data, error } = await supabase
-        .from('prospects')
-        .insert(newProspect)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      if (data) {
-        // Add the new prospect to the local state
-        setProspects([...prospects, { ...data, email_data: null } as ProspectWithEmail]);
-        
-        toast.success('Prospect added successfully');
-      }
-    } catch (error: any) {
-      toast.error('Error adding prospect: ' + error.message);
-      console.error('Error adding prospect:', error);
-    }
+  const handleProspectAdded = () => {
+    fetchCampaignData();
   };
 
   if (isLoading) {
@@ -432,105 +408,138 @@ ${campaign?.company_name}`;
             </div>
           </div>
 
-          {/* Prospects */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-lg font-medium text-gray-900">Prospects</h2>
-              <div className="flex space-x-3">
-                <Button variant="outline" size="sm" onClick={handleAddProspect}>
-                  <Plus size={16} className="mr-2" />
-                  Add Prospect
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Upload size={16} className="mr-2" />
-                  Import CSV
-                </Button>
+          {/* Prospects Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Prospects List - Takes 2/3 of space on large screens */}
+            <div className="lg:col-span-2">
+              <div className="bg-white shadow rounded-lg">
+                <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <h2 className="text-lg font-medium text-gray-900">Prospects</h2>
+                    <button 
+                      onClick={() => setShowRequirements(!showRequirements)}
+                      className="ml-2 text-xs text-brand-purple font-medium hover:underline md:hidden"
+                    >
+                      {showRequirements ? "Hide Requirements" : "View Requirements"}
+                    </button>
+                  </div>
+                  <div className="flex space-x-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setAddProspectDialogOpen(true)}
+                    >
+                      <Plus size={16} className="mr-2" />
+                      Add
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setImportSheetOpen(true)}
+                    >
+                      <Upload size={16} className="mr-2" />
+                      Import
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Mobile view of requirements that can be toggled */}
+                {showRequirements && (
+                  <div className="md:hidden p-4 border-b border-gray-200">
+                    <ProspectRequirements />
+                  </div>
+                )}
+                
+                {prospects.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Company</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Email Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {prospects.map((prospect) => (
+                          <TableRow key={prospect.id}>
+                            <TableCell className="font-medium">{prospect.name}</TableCell>
+                            <TableCell>{prospect.company_name}</TableCell>
+                            <TableCell>{prospect.role}</TableCell>
+                            <TableCell>{prospect.email}</TableCell>
+                            <TableCell>
+                              {prospect.email_data ? (
+                                <div className="flex items-center">
+                                  <span 
+                                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                      ${prospect.email_data.status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 
+                                        prospect.email_data.status === 'approved' ? 'bg-blue-100 text-blue-800' : 
+                                        prospect.email_data.status === 'sent' ? 'bg-green-100 text-green-800' : 
+                                        'bg-red-100 text-red-800'}`}
+                                  >
+                                    {prospect.email_data.status.charAt(0).toUpperCase() + prospect.email_data.status.slice(1)}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-sm">No email</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => generateEmailForProspect(prospect)}
+                                  disabled={isGeneratingEmail}
+                                >
+                                  {prospect.email_data ? (
+                                    <>
+                                      <Pencil size={14} className="mr-1" />
+                                      Edit
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send size={14} className="mr-1" />
+                                      Generate
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No prospects</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Get started by adding your first prospect or importing a CSV file.
+                    </p>
+                    <div className="mt-6 flex justify-center space-x-3">
+                      <Button onClick={() => setAddProspectDialogOpen(true)}>
+                        <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                        Add Prospect
+                      </Button>
+                      <Button variant="outline" onClick={() => setImportSheetOpen(true)}>
+                        <Upload className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                        Import CSV
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
-            {prospects.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Email Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {prospects.map((prospect) => (
-                      <TableRow key={prospect.id}>
-                        <TableCell className="font-medium">{prospect.name}</TableCell>
-                        <TableCell>{prospect.company_name}</TableCell>
-                        <TableCell>{prospect.role}</TableCell>
-                        <TableCell>{prospect.email}</TableCell>
-                        <TableCell>
-                          {prospect.email_data ? (
-                            <div className="flex items-center">
-                              <span 
-                                className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                  ${prospect.email_data.status === 'draft' ? 'bg-yellow-100 text-yellow-800' : 
-                                    prospect.email_data.status === 'approved' ? 'bg-blue-100 text-blue-800' : 
-                                    prospect.email_data.status === 'sent' ? 'bg-green-100 text-green-800' : 
-                                    'bg-red-100 text-red-800'}`}
-                              >
-                                {prospect.email_data.status.charAt(0).toUpperCase() + prospect.email_data.status.slice(1)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 text-sm">No email</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => generateEmailForProspect(prospect)}
-                              disabled={isGeneratingEmail}
-                            >
-                              {prospect.email_data ? (
-                                <>
-                                  <Pencil size={14} className="mr-1" />
-                                  Edit
-                                </>
-                              ) : (
-                                <>
-                                  <Send size={14} className="mr-1" />
-                                  Generate
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Users className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No prospects</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Get started by adding your first prospect or importing a CSV file.
-                </p>
-                <div className="mt-6 flex justify-center space-x-3">
-                  <Button onClick={handleAddProspect}>
-                    <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                    Add Prospect
-                  </Button>
-                  <Button variant="outline">
-                    <Upload className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                    Import CSV
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Requirements - Shows only on desktop, takes 1/3 of space */}
+            <div className="hidden lg:block">
+              <ProspectRequirements />
+            </div>
           </div>
         </div>
       </main>
@@ -582,6 +591,20 @@ ${campaign?.company_name}`;
         </DialogContent>
       </Dialog>
 
+      {/* Add Prospect Dialog */}
+      <AddProspectDialog 
+        isOpen={addProspectDialogOpen} 
+        onClose={() => setAddProspectDialogOpen(false)} 
+        onProspectAdded={handleProspectAdded}
+      />
+
+      {/* Import Prospects Sheet */}
+      <ImportProspectsSheet 
+        isOpen={importSheetOpen} 
+        onClose={() => setImportSheetOpen(false)} 
+        onImportComplete={handleProspectAdded}
+      />
+      
       <Footer />
     </div>
   );
