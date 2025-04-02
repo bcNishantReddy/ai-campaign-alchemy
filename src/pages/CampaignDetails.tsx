@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
   DialogDescription, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
 import {
@@ -66,7 +64,6 @@ const CampaignDetails = () => {
   const [addProspectDialogOpen, setAddProspectDialogOpen] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
-  // New state for API keys
   const [mailjetKeys, setMailjetKeys] = useState<{api_key: string; secret_key: string} | null>(null);
 
   const fetchCampaignData = async () => {
@@ -94,7 +91,7 @@ const CampaignDetails = () => {
       if (prospectsError) throw prospectsError;
       
       // For each prospect, fetch their email
-      const prospectsWithEmails = await Promise.all(
+      const prospectsWithEmails: ProspectWithEmail[] = await Promise.all(
         (prospectsData || []).map(async (prospect) => {
           const { data: emailData } = await supabase
             .from('emails')
@@ -213,9 +210,9 @@ const CampaignDetails = () => {
         
       if (error) throw error;
       
-      // Update the prospect in the local state
+      // Update the prospect in the local state with type assertion to ensure compatibility
       setProspects(prospects.map(p => 
-        p.id === prospect.id ? { ...p, email_data: emailData } : p
+        p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
       ));
       
       // Open the email dialog
@@ -248,9 +245,9 @@ const CampaignDetails = () => {
         
       if (error) throw error;
       
-      // Update the prospect in the local state
+      // Update the prospect in the local state with type assertion
       setProspects(prospects.map(p => 
-        p.id === selectedProspect.id ? { ...p, email_data: emailData } : p
+        p.id === selectedProspect.id ? { ...p, email_data: emailData as Email } : p
       ));
       
       toast.success('Email approved successfully');
@@ -287,9 +284,9 @@ const CampaignDetails = () => {
         
       if (updateError) throw updateError;
       
-      // Update the prospect in the local state
+      // Update the prospect in the local state with type assertion
       setProspects(prospects.map(p => 
-        p.id === selectedProspect.id ? { ...p, email_data: data } : p
+        p.id === selectedProspect.id ? { ...p, email_data: data as Email } : p
       ));
       
       toast.success(`Email sent to ${selectedProspect.name}`);

@@ -226,7 +226,7 @@ const Dashboard = () => {
                           </div>
                           <div className="ml-2 flex-shrink-0 flex">
                             <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              {campaign.status}
+                              {campaign.status || 'Active'}
                             </p>
                           </div>
                         </div>

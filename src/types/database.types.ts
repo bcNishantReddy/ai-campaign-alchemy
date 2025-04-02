@@ -1,3 +1,4 @@
+
 export interface Campaign {
   id: string;
   created_at: string;
@@ -9,6 +10,7 @@ export interface Campaign {
   representative_role: string;
   representative_email: string;
   user_id: string;
+  status: string;
 }
 
 export interface Prospect {
@@ -27,7 +29,7 @@ export interface Email {
   prospect_id: string;
   subject: string;
   body: string;
-  status: 'draft' | 'approved' | 'sent' | 'rejected';
+  status: 'draft' | 'approved' | 'sent' | 'rejected' | string;
 }
 
 export interface Profile {
