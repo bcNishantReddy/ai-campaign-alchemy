@@ -239,41 +239,65 @@ const Settings = () => {
     try {
       setUploadingPhoto(true);
       
-      // Upload file to Supabase Storage
+      // Create a unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
       
+      console.log("Uploading file:", filePath);
+      
+      // Upload file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('profiles')
-        .upload(`public/${fileName}`, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
         
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
+      
+      console.log("Upload successful:", data);
       
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profiles')
-        .getPublicUrl(`public/${fileName}`);
+        .getPublicUrl(filePath);
+      
+      console.log("Public URL:", publicUrl);
       
       // Update profile with new photo URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ profile_photo: publicUrl })
+        .update({ 
+          profile_photo: publicUrl,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
         
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw updateError;
+      }
       
       // Update local state
       if (profile) {
         setProfile({
           ...profile,
           profile_photo: publicUrl,
+          updated_at: new Date().toISOString()
         });
       }
+      
+      // Refresh profile in auth context
+      await refreshProfile();
       
       toast.success("Profile photo updated successfully");
     } catch (error: any) {
       console.error("Error uploading photo:", error);
-      toast.error("Failed to upload profile photo");
+      toast.error("Failed to upload profile photo: " + (error.message || error.error_description || "Unknown error"));
     } finally {
       setUploadingPhoto(false);
     }
