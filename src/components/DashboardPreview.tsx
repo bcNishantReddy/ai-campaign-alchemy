@@ -1,28 +1,18 @@
-
 import { BarChart3, Mail, Users, CheckCircle, Clock } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const DashboardPreview = () => {
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 max-w-5xl mx-auto">
-      {/* Dashboard Header */}
-      <div className="bg-brand-darkBlue text-white p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 rounded-full bg-brand-purple flex items-center justify-center">
-              <span className="font-bold">AC</span>
-            </div>
-            <div>
-              <h3 className="font-medium">AI Campaign Dashboard</h3>
-              <p className="text-xs text-gray-300">Welcome back, Alex</p>
-            </div>
-          </div>
-          <div className="flex space-x-3">
-            <button className="px-3 py-1 text-sm bg-brand-purple rounded-md hover:bg-opacity-80 transition-colors">
-              New Campaign
-            </button>
-            <button className="px-3 py-1 text-sm border border-white/20 rounded-md hover:bg-white/10 transition-colors">
-              Settings
-            </button>
+      {/* Dashboard Header - Updated to match the image */}
+      <div className="bg-gray-900 text-white p-4">
+        <div className="flex items-center">
+          <Avatar className="h-10 w-10 bg-brand-purple mr-3">
+            <AvatarFallback>AC</AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-medium text-xl">AI Campaign Dashboard</h3>
+            <p className="text-sm text-gray-300">Welcome back, Alex</p>
           </div>
         </div>
       </div>

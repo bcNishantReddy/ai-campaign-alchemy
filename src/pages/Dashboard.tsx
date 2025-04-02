@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Dashboard = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -48,14 +49,21 @@ const Dashboard = () => {
 
       <main className="flex-grow pt-24 pb-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Campaign Dashboard</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Manage and monitor all your AI-powered email campaigns
-              </p>
+          {/* Dashboard Header - Updated to match the image */}
+          <div className="bg-gray-900 text-white p-4 rounded-t-lg mb-8">
+            <div className="flex items-center">
+              <Avatar className="h-10 w-10 bg-brand-purple mr-3">
+                <AvatarFallback>AC</AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-xl font-bold">AI Campaign Dashboard</h1>
+                <p className="text-sm text-gray-300">Welcome back, Alex</p>
+              </div>
             </div>
-            <div className="mt-4 md:mt-0">
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div className="mt-4 md:mt-0 flex justify-end">
               <Link to="/campaigns/new">
                 <Button className="bg-brand-purple hover:bg-brand-purple/90">
                   <Plus size={16} className="mr-2" />
