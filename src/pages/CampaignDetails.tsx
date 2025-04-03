@@ -244,45 +244,44 @@ const CampaignDetails = () => {
         body: generatedEmail.body || ''
       });
       
-      if (regenerate && prospect.email_data?.id) {
-        const { data: emailData, error } = await supabase
-          .from('emails')
-          .update({
-            subject: generatedEmail.subject,
-            body: generatedEmail.body,
-            status: 'draft',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', prospect.email_data.id)
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
-        ));
-      } else if (generatedEmail.email_record) {
+      if (generatedEmail.email_record) {
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
         ));
       } else {
         const { data: emailData, error } = await supabase
           .from('emails')
-          .insert({
-            prospect_id: prospect.id,
-            subject: generatedEmail.subject,
-            body: generatedEmail.body,
-            status: 'draft'
-          })
-          .select()
-          .single();
+          .select('*')
+          .eq('prospect_id', prospect.id)
+          .maybeSingle();
           
-        if (error) throw error;
-        
-        setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
-        ));
+        if (error) {
+          console.error("Error fetching email:", error);
+        } else if (emailData) {
+          setProspects(prospects.map(p => 
+            p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
+          ));
+        } else {
+          console.warn("No email record returned from API or found in database, creating one manually");
+          const { data: newEmail, error: insertError } = await supabase
+            .from('emails')
+            .insert({
+              prospect_id: prospect.id,
+              subject: generatedEmail.subject,
+              body: generatedEmail.body,
+              status: 'draft'
+            })
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error("Error creating email record:", insertError);
+          } else {
+            setProspects(prospects.map(p => 
+              p.id === prospect.id ? { ...p, email_data: newEmail as Email } : p
+            ));
+          }
+        }
       }
       
       setEmailDialogOpen(true);

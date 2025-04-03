@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Spinner } from "@/components/ui/spinner";
 import { Check, X, Mail } from "lucide-react";
 import { Prospect, Email, Campaign } from "@/types/database.types";
@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 type ProspectWithEmail = Prospect & {
   email_data: Email | null;
@@ -43,6 +44,35 @@ const ProspectEmailDialog: React.FC<ProspectEmailDialogProps> = ({
   onApprove,
   onReject,
 }) => {
+  // Save email content to database when it changes
+  useEffect(() => {
+    if (isOpen && prospect?.email_data?.id) {
+      const saveEmailContent = async () => {
+        // Don't save if the content hasn't changed
+        if (
+          prospect.email_data?.subject === emailContent.subject &&
+          prospect.email_data?.body === emailContent.body
+        ) {
+          return;
+        }
+        
+        // Save email content to database
+        await supabase
+          .from('emails')
+          .update({
+            subject: emailContent.subject,
+            body: emailContent.body,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', prospect.email_data.id);
+      };
+      
+      // Use a debounce to avoid too many updates
+      const debounceTimer = setTimeout(saveEmailContent, 1000);
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [emailContent, isOpen, prospect?.email_data?.id]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">

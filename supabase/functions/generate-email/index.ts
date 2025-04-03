@@ -100,34 +100,70 @@ serve(async (req) => {
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
         const supabase = createClient(supabaseUrl, supabaseKey);
         
-        console.log(`Storing email for prospect ID: ${requestData.prospect_id}`);
+        console.log(`Checking for existing email for prospect ID: ${requestData.prospect_id}`);
         
-        // Store the email in the database - ensure we're storing the HTML content as is
-        const { data: emailRecord, error: insertError } = await supabase
+        // Check if an email already exists for this prospect
+        const { data: existingEmail, error: fetchError } = await supabase
           .from('emails')
-          .insert({
-            prospect_id: requestData.prospect_id,
-            subject: emailResponse.subject,
-            body: emailResponse.body, // Store the HTML content as returned by the API
-            status: 'draft'
-          })
-          .select()
-          .single();
+          .select('*')
+          .eq('prospect_id', requestData.prospect_id)
+          .maybeSingle();
           
-        if (insertError) {
-          console.error("Error storing email in database:", insertError);
-          return new Response(
-            JSON.stringify({ error: `Error storing email: ${insertError.message}` }),
-            { 
-              status: 500, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        } else {
-          console.log("Email stored successfully:", emailRecord);
-          // Add the email record to the response
-          emailResponse.email_record = emailRecord;
+        if (fetchError) {
+          console.error("Error checking for existing email:", fetchError);
         }
+        
+        let emailRecord;
+        
+        if (existingEmail) {
+          console.log(`Existing email found, updating record ID: ${existingEmail.id}`);
+          
+          // Update the existing email
+          const { data: updatedEmail, error: updateError } = await supabase
+            .from('emails')
+            .update({
+              subject: emailResponse.subject,
+              body: emailResponse.body,
+              status: 'draft',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingEmail.id)
+            .select()
+            .single();
+            
+          if (updateError) {
+            console.error("Error updating email in database:", updateError);
+            throw updateError;
+          } else {
+            console.log("Email updated successfully:", updatedEmail);
+            emailRecord = updatedEmail;
+          }
+        } else {
+          console.log(`No existing email found, creating new record for prospect ID: ${requestData.prospect_id}`);
+          
+          // Store the email in the database - ensure we're storing the HTML content as is
+          const { data: newEmail, error: insertError } = await supabase
+            .from('emails')
+            .insert({
+              prospect_id: requestData.prospect_id,
+              subject: emailResponse.subject,
+              body: emailResponse.body, // Store the HTML content as returned by the API
+              status: 'draft'
+            })
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error("Error storing email in database:", insertError);
+            throw insertError;
+          } else {
+            console.log("Email stored successfully:", newEmail);
+            emailRecord = newEmail;
+          }
+        }
+        
+        // Add the email record to the response
+        emailResponse.email_record = emailRecord;
       } catch (dbError) {
         console.error("Database operation error:", dbError);
         return new Response(

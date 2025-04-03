@@ -68,6 +68,28 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
 
     console.log("Email generated successfully:", response);
     
+    // Ensure email_record exists - if it doesn't, create a record in the database
+    if (!response.email_record && data.prospect_id) {
+      console.log("No email record returned from function, creating one manually");
+      const { data: emailRecord, error: insertError } = await supabase
+        .from('emails')
+        .insert({
+          prospect_id: data.prospect_id,
+          subject: response.subject,
+          body: response.body,
+          status: 'draft'
+        })
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error("Error creating email record:", insertError);
+      } else {
+        console.log("Email record created successfully:", emailRecord);
+        response.email_record = emailRecord;
+      }
+    }
+    
     // Important: return the full response which includes the HTML content
     return response;
   } catch (error: any) {

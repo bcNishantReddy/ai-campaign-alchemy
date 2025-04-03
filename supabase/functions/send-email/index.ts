@@ -142,6 +142,8 @@ serve(async (req) => {
       if (updateError) {
         console.error("Error updating email status:", updateError);
         // We don't want to fail the response if this update fails
+      } else {
+        console.log(`Successfully updated email status to 'sent' for email ID: ${requestData.email_id}`);
       }
     }
     
