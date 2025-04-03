@@ -17,7 +17,7 @@ interface EmailGenerationRequest {
   prospect_company_name: string;
   prospect_rep_name: string;
   prospect_rep_email: string;
-  prospect_rep_role: string; // Added new field
+  prospect_rep_role: string;
   user_id?: string;
   prospect_id?: string;
 }
@@ -68,7 +68,7 @@ serve(async (req) => {
         prospect_company_name: processedData.prospect_company_name,
         prospect_rep_name: processedData.prospect_rep_name,
         prospect_rep_email: processedData.prospect_rep_email,
-        prospect_rep_role: processedData.prospect_rep_role // Added new field
+        prospect_rep_role: processedData.prospect_rep_role
       }),
     });
 
@@ -102,32 +102,67 @@ serve(async (req) => {
         
         console.log(`Storing email for prospect ID: ${requestData.prospect_id}`);
         
-        // Store the email in the database - ensure we're storing the HTML content as is
-        const { data: emailRecord, error: insertError } = await supabase
+        // First check if there's an existing email for this prospect
+        const { data: existingEmail, error: queryError } = await supabase
           .from('emails')
-          .insert({
-            prospect_id: requestData.prospect_id,
-            subject: emailResponse.subject,
-            body: emailResponse.body, // Store the HTML content as returned by the API
-            status: 'draft'
-          })
-          .select()
-          .single();
+          .select('id')
+          .eq('prospect_id', requestData.prospect_id)
+          .maybeSingle();
           
-        if (insertError) {
-          console.error("Error storing email in database:", insertError);
-          return new Response(
-            JSON.stringify({ error: `Error storing email: ${insertError.message}` }),
-            { 
-              status: 500, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        } else {
-          console.log("Email stored successfully:", emailRecord);
-          // Add the email record to the response
-          emailResponse.email_record = emailRecord;
+        if (queryError) {
+          console.error("Error checking for existing email:", queryError);
+          throw queryError;
         }
+        
+        let emailRecord;
+        
+        if (existingEmail) {
+          // Update the existing email
+          console.log(`Updating existing email with ID: ${existingEmail.id}`);
+          const { data, error: updateError } = await supabase
+            .from('emails')
+            .update({
+              subject: emailResponse.subject,
+              body: emailResponse.body,
+              status: 'draft',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingEmail.id)
+            .select()
+            .single();
+            
+          if (updateError) {
+            console.error("Error updating existing email:", updateError);
+            throw updateError;
+          }
+          
+          emailRecord = data;
+          console.log("Existing email updated successfully:", emailRecord);
+        } else {
+          // Insert a new email
+          console.log("Creating new email record");
+          const { data, error: insertError } = await supabase
+            .from('emails')
+            .insert({
+              prospect_id: requestData.prospect_id,
+              subject: emailResponse.subject,
+              body: emailResponse.body,
+              status: 'draft'
+            })
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error("Error inserting new email:", insertError);
+            throw insertError;
+          }
+          
+          emailRecord = data;
+          console.log("New email created successfully:", emailRecord);
+        }
+        
+        // Add the email record to the response
+        emailResponse.email_record = emailRecord;
       } catch (dbError) {
         console.error("Database operation error:", dbError);
         return new Response(
@@ -138,6 +173,8 @@ serve(async (req) => {
           }
         );
       }
+    } else {
+      console.warn("No prospect_id provided, skipping email storage");
     }
     
     return new Response(

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -244,44 +245,54 @@ const CampaignDetails = () => {
         body: generatedEmail.body || ''
       });
       
-      if (regenerate && prospect.email_data?.id) {
-        const { data: emailData, error } = await supabase
-          .from('emails')
-          .update({
-            subject: generatedEmail.subject,
-            body: generatedEmail.body,
-            status: 'draft'
-          })
-          .eq('id', prospect.email_data.id)
-          .select()
-          .single();
-          
-        if (error) throw error;
+      // Check if email was stored in the database and returned in the response
+      if (generatedEmail.email_record) {
+        console.log("Email record received from API:", generatedEmail.email_record);
         
-        setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
-        ));
-      } else if (!generatedEmail.email_record) {
-        const { data: emailData, error } = await supabase
-          .from('emails')
-          .insert({
-            prospect_id: prospect.id,
-            subject: generatedEmail.subject,
-            body: generatedEmail.body,
-            status: 'draft'
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
-        ));
-      } else {
+        // Update the prospects array with the new email data
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
         ));
+      } else {
+        console.warn("No email record received from API, fetching emails for prospect");
+        
+        // If no email record was returned, fetch the current emails for this prospect
+        const { data: emailData } = await supabase
+          .from('emails')
+          .select('*')
+          .eq('prospect_id', prospect.id)
+          .maybeSingle();
+          
+        if (emailData) {
+          console.log("Found email in database:", emailData);
+          setProspects(prospects.map(p => 
+            p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
+          ));
+        } else {
+          console.warn("No email found in database after generation, will create one locally");
+          
+          // If still no email found, create a new one in the database
+          const { data: newEmailData, error } = await supabase
+            .from('emails')
+            .insert({
+              prospect_id: prospect.id,
+              subject: generatedEmail.subject,
+              body: generatedEmail.body,
+              status: 'draft'
+            })
+            .select()
+            .single();
+            
+          if (error) {
+            console.error("Error creating email:", error);
+            throw error;
+          }
+          
+          console.log("Created new email:", newEmailData);
+          setProspects(prospects.map(p => 
+            p.id === prospect.id ? { ...p, email_data: newEmailData as Email } : p
+          ));
+        }
       }
       
       setEmailDialogOpen(true);
