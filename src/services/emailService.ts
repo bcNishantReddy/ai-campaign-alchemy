@@ -13,6 +13,7 @@ export interface EmailGenerationRequest {
   prospect_company_name: string;
   prospect_rep_name: string;
   prospect_rep_email: string;
+  prospect_id?: string;
 }
 
 // Types for email generation response
@@ -24,6 +25,7 @@ export interface EmailGenerationResponse {
   prospect_company_name: string;
   subject: string;
   body: string;
+  email_record?: any;
 }
 
 // Types for email sending request

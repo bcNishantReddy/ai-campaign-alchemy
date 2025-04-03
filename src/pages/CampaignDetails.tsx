@@ -65,6 +65,7 @@ const CampaignDetails = () => {
   const [importSheetOpen, setImportSheetOpen] = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
   const [mailjetKeys, setMailjetKeys] = useState<{api_key: string; secret_key: string} | null>(null);
+  const [prospectLoadingStates, setProspectLoadingStates] = useState<Record<string, boolean>>({});
 
   const fetchCampaignData = async () => {
     if (!id) return;
@@ -160,19 +161,27 @@ const CampaignDetails = () => {
   const generateEmailForProspect = async (prospect: ProspectWithEmail) => {
     if (!campaign) return;
     
+    setProspectLoadingStates(prev => ({ ...prev, [prospect.id]: true }));
+    
     setSelectedProspect(prospect);
-    setIsGeneratingEmail(true);
     
     try {
-      // If the prospect already has an email, just display it
+      // If the prospect already has an email, just display it without calling the API
       if (prospect.email_data) {
         setEmailContent({
           subject: prospect.email_data.subject,
           body: prospect.email_data.body
         });
         setEmailDialogOpen(true);
+        setProspectLoadingStates(prev => ({ ...prev, [prospect.id]: false }));
         return;
       }
+      
+      // Start global loading state for generating email
+      setIsGeneratingEmail(true);
+      
+      // Show a toast that we're generating the email
+      const generatingToast = toast.loading(`Generating email for ${prospect.name}...`);
       
       // Prepare data for the API call
       const generationData = {
@@ -184,11 +193,18 @@ const CampaignDetails = () => {
         company_rep_email: campaign.representative_email,
         prospect_company_name: prospect.company_name,
         prospect_rep_name: prospect.name,
-        prospect_rep_email: prospect.email
+        prospect_rep_email: prospect.email,
+        prospect_id: prospect.id
       };
       
       // Call the API
       const generatedEmail = await generateEmail(generationData);
+      
+      // Dismiss the generating toast
+      toast.dismiss(generatingToast);
+      
+      // Show success toast
+      toast.success(`Email generated for ${prospect.name}`);
       
       // Update the state with the API response
       setEmailContent({
@@ -196,24 +212,31 @@ const CampaignDetails = () => {
         body: generatedEmail.body
       });
       
-      // Create a new email record in the database
-      const { data: emailData, error } = await supabase
-        .from('emails')
-        .insert({
-          prospect_id: prospect.id,
-          subject: generatedEmail.subject,
-          body: generatedEmail.body,
-          status: 'draft'
-        })
-        .select()
-        .single();
+      // If the email wasn't stored by the edge function, store it now
+      if (!generatedEmail.email_record) {
+        const { data: emailData, error } = await supabase
+          .from('emails')
+          .insert({
+            prospect_id: prospect.id,
+            subject: generatedEmail.subject,
+            body: generatedEmail.body,
+            status: 'draft'
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
         
-      if (error) throw error;
-      
-      // Update the prospect in the local state with type assertion to ensure compatibility
-      setProspects(prospects.map(p => 
-        p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
-      ));
+        // Update the prospect in the local state with type assertion to ensure compatibility
+        setProspects(prospects.map(p => 
+          p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
+        ));
+      } else {
+        // Email was stored by the edge function, update the local state
+        setProspects(prospects.map(p => 
+          p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
+        ));
+      }
       
       // Open the email dialog
       setEmailDialogOpen(true);
@@ -222,6 +245,7 @@ const CampaignDetails = () => {
       console.error('Error generating email:', error);
     } finally {
       setIsGeneratingEmail(false);
+      setProspectLoadingStates(prev => ({ ...prev, [prospect.id]: false }));
     }
   };
 
@@ -260,6 +284,9 @@ const CampaignDetails = () => {
         return;
       }
       
+      // Show sending toast
+      const sendingToast = toast.loading(`Sending email to ${selectedProspect.name}...`);
+      
       // Send the email via our edge function
       const sendData = {
         from_email: campaign.representative_email,
@@ -273,6 +300,9 @@ const CampaignDetails = () => {
       
       // Call the send email API
       const response = await sendEmail(sendData);
+      
+      // Dismiss sending toast
+      toast.dismiss(sendingToast);
       
       // Update email status to sent
       const { data, error: updateError } = await supabase
@@ -560,9 +590,14 @@ const CampaignDetails = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => generateEmailForProspect(prospect)}
-                                  disabled={isGeneratingEmail}
+                                  disabled={prospectLoadingStates[prospect.id] || isGeneratingEmail}
                                 >
-                                  {prospect.email_data ? (
+                                  {prospectLoadingStates[prospect.id] ? (
+                                    <>
+                                      <Spinner size="sm" className="mr-2" />
+                                      Processing...
+                                    </>
+                                  ) : prospect.email_data ? (
                                     <>
                                       <Pencil size={14} className="mr-1" />
                                       Edit
