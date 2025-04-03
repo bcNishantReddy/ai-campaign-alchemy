@@ -78,14 +78,14 @@ serve(async (req) => {
       );
     }
 
-    // Prepare the data for the external API call
+    // Prepare the data for the external API call - preserve HTML content in body
     const externalApiData = {
       from_email: requestData.from_email,
       from_name: requestData.from_name,
       to_email: requestData.to_email,
       to_name: requestData.to_name,
       subject: requestData.subject,
-      body: requestData.body,
+      body: requestData.body, // Keep HTML tags intact
       mailjet_api_key: apiKeysData.mailjet_api_key,
       mailjet_api_secret: apiKeysData.mailjet_secret_key
     };

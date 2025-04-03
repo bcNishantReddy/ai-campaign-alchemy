@@ -63,6 +63,7 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
       throw new Error('No response received from the server');
     }
 
+    // The response.body may contain HTML - make sure we preserve it
     console.log("Email generated successfully:", response);
     return response;
   } catch (error: any) {
@@ -98,6 +99,7 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
     delete requestData.mailjet_api_key;
     delete requestData.mailjet_api_secret;
 
+    // Send the email - the HTML body should remain intact in the requestData
     const { data: response, error } = await supabase.functions.invoke('send-email', {
       body: requestData,
     });

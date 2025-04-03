@@ -51,8 +51,7 @@ serve(async (req) => {
 
     console.log("Sending request to the AI service for email generation");
 
-    // For now, let's generate a mock email directly instead of calling the external service
-    // This will help us test the storage functionality without depending on the external service
+    // Generate a mock email with HTML formatting - this simulates what would come from an AI service
     const mockEmail = {
       sender_email: processedData.company_rep_email,
       sender_name: processedData.company_rep_name,
@@ -60,7 +59,12 @@ serve(async (req) => {
       prospect_email: processedData.prospect_rep_email,
       prospect_company_name: processedData.prospect_company_name,
       subject: `Partnership opportunity with ${processedData.company_name}`,
-      body: `Dear ${processedData.prospect_rep_name},\n\nI hope this email finds you well. My name is ${processedData.company_rep_name}, ${processedData.company_rep_role} at ${processedData.company_name}.\n\n${processedData.company_description}\n\nI'm reaching out to discuss ${processedData.campaign_description}.\n\nI believe there might be some great synergies between our companies. Would you be available for a 15-minute call this week to explore potential collaboration?\n\nBest regards,\n${processedData.company_rep_name}\n${processedData.company_rep_role}\n${processedData.company_name}`
+      body: `<p>Dear ${processedData.prospect_rep_name},</p>
+<p>I hope this email finds you well. My name is ${processedData.company_rep_name}, ${processedData.company_rep_role} at ${processedData.company_name}.</p>
+<p>${processedData.company_description}</p>
+<p>I'm reaching out to discuss ${processedData.campaign_description}.</p>
+<p>I believe there might be some great synergies between our companies. Would you be available for a 15-minute call this week to explore potential collaboration?</p>
+<p>Best regards,<br>${processedData.company_rep_name}<br>${processedData.company_rep_role}<br>${processedData.company_name}</p>`
     };
 
     // If prospect_id is provided, store the email in the database
@@ -73,7 +77,7 @@ serve(async (req) => {
         
         console.log(`Storing email for prospect ID: ${requestData.prospect_id}`);
         
-        // Store the email in the database
+        // Store the email in the database - ensure we're storing the HTML content as is
         const { data: emailRecord, error: insertError } = await supabase
           .from('emails')
           .insert({

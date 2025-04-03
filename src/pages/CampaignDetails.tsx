@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,6 @@ const CampaignDetails = () => {
     try {
       setIsLoading(true);
       
-      // Fetch campaign details
       const { data: campaignData, error: campaignError } = await supabase
         .from('campaigns')
         .select('*')
@@ -86,7 +84,6 @@ const CampaignDetails = () => {
       if (campaignError) throw campaignError;
       setCampaign(campaignData as Campaign);
       
-      // Fetch prospects with their emails
       const { data: prospectsData, error: prospectsError } = await supabase
         .from('prospects')
         .select('*')
@@ -94,7 +91,6 @@ const CampaignDetails = () => {
         
       if (prospectsError) throw prospectsError;
       
-      // For each prospect, fetch their email
       const prospectsWithEmails: ProspectWithEmail[] = await Promise.all(
         (prospectsData || []).map(async (prospect) => {
           const { data: emailData } = await supabase
@@ -112,7 +108,6 @@ const CampaignDetails = () => {
       
       setProspects(prospectsWithEmails);
       
-      // Fetch Mailjet API keys if available
       if (campaignData.user_id) {
         const { data: apiKeysData } = await supabase
           .from('user_api_keys')
@@ -169,7 +164,6 @@ const CampaignDetails = () => {
     setSelectedProspect(prospect);
     
     try {
-      // If the prospect already has an email, just display it without calling the API
       if (prospect.email_data) {
         setEmailContent({
           subject: prospect.email_data.subject,
@@ -180,13 +174,10 @@ const CampaignDetails = () => {
         return;
       }
       
-      // Start global loading state for generating email
       setIsGeneratingEmail(true);
       
-      // Show a toast that we're generating the email
       const generatingToast = toast.loading(`Generating email for ${prospect.name}...`);
       
-      // Prepare data for the API call - ensure all fields have values
       const generationData = {
         company_name: campaign.company_name || 'Your Company',
         company_description: campaign.company_description || 'No description provided.',
@@ -202,22 +193,17 @@ const CampaignDetails = () => {
       
       console.log("Sending email generation data:", generationData);
       
-      // Call the API
       const generatedEmail = await generateEmail(generationData);
       
-      // Dismiss the generating toast
       toast.dismiss(generatingToast);
       
-      // Show success toast
       toast.success(`Email generated for ${prospect.name}`);
       
-      // Update the state with the API response
       setEmailContent({
         subject: generatedEmail.subject,
         body: generatedEmail.body
       });
       
-      // If the email wasn't stored by the edge function, store it now
       if (!generatedEmail.email_record) {
         const { data: emailData, error } = await supabase
           .from('emails')
@@ -232,18 +218,15 @@ const CampaignDetails = () => {
           
         if (error) throw error;
         
-        // Update the prospect in the local state with type assertion to ensure compatibility
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
         ));
       } else {
-        // Email was stored by the edge function, update the local state
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
         ));
       }
       
-      // Open the email dialog
       setEmailDialogOpen(true);
     } catch (error: any) {
       toast.error('Error generating email: ' + error.message);
@@ -260,7 +243,6 @@ const CampaignDetails = () => {
     try {
       setIsApproving(true);
       
-      // Update the email status in the database
       const { data: emailData, error } = await supabase
         .from('emails')
         .update({
@@ -274,7 +256,6 @@ const CampaignDetails = () => {
         
       if (error) throw error;
       
-      // Update the prospect in the local state with type assertion
       setProspects(prospects.map(p => 
         p.id === selectedProspect.id ? { ...p, email_data: emailData as Email } : p
       ));
@@ -282,17 +263,14 @@ const CampaignDetails = () => {
       toast.success('Email approved successfully');
       setEmailDialogOpen(false);
       
-      // Get current user
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.warning('User not authenticated. Please log in again.');
         return;
       }
       
-      // Show sending toast
       const sendingToast = toast.loading(`Sending email to ${selectedProspect.name}...`);
       
-      // Send the email via our edge function
       const sendData = {
         from_email: campaign.representative_email,
         from_name: campaign.representative_name,
@@ -303,13 +281,10 @@ const CampaignDetails = () => {
         user_id: sessionData.session.user.id
       };
       
-      // Call the send email API
       const response = await sendEmail(sendData);
       
-      // Dismiss sending toast
       toast.dismiss(sendingToast);
       
-      // Update email status to sent
       const { data, error: updateError } = await supabase
         .from('emails')
         .update({ status: 'sent' })
@@ -319,7 +294,6 @@ const CampaignDetails = () => {
         
       if (updateError) throw updateError;
       
-      // Update the prospect in the local state with type assertion
       setProspects(prospects.map(p => 
         p.id === selectedProspect.id ? { ...p, email_data: data as Email } : p
       ));
@@ -344,7 +318,6 @@ const CampaignDetails = () => {
         
       if (error) throw error;
       
-      // Update the prospects in local state with proper type assertion
       const updatedProspects = prospects.map(p => {
         if (p.id === selectedProspect.id && p.email_data) {
           return {
@@ -468,7 +441,6 @@ const CampaignDetails = () => {
             </div>
           </div>
 
-          {/* Campaign Details */}
           <div className="bg-white shadow rounded-lg mb-8">
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-medium text-gray-900">Campaign Details</h2>
@@ -510,7 +482,6 @@ const CampaignDetails = () => {
               </div>
             </div>
             
-            {/* API Keys Status */}
             <div className="px-6 py-3 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
@@ -532,9 +503,7 @@ const CampaignDetails = () => {
             </div>
           </div>
 
-          {/* Prospects Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Prospects List - Takes 2/3 of space on large screens */}
             <div className="lg:col-span-2">
               <div className="bg-white shadow rounded-lg">
                 <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
@@ -567,7 +536,6 @@ const CampaignDetails = () => {
                   </div>
                 </div>
                 
-                {/* Mobile view of requirements that can be toggled */}
                 {showRequirements && (
                   <div className="md:hidden p-4 border-b border-gray-200">
                     <ProspectRequirements />
@@ -665,7 +633,6 @@ const CampaignDetails = () => {
               </div>
             </div>
             
-            {/* Requirements - Shows only on desktop, takes 1/3 of space */}
             <div className="hidden lg:block">
               <ProspectRequirements />
             </div>
@@ -673,7 +640,6 @@ const CampaignDetails = () => {
         </div>
       </main>
 
-      {/* Email Dialog */}
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -701,6 +667,13 @@ const CampaignDetails = () => {
                 onChange={(e) => setEmailContent(prev => ({ ...prev, body: e.target.value }))}
                 className="min-h-[200px]"
               />
+              <div className="mt-4 border p-4 rounded-md bg-white">
+                <p className="text-sm text-gray-500 mb-2">Email Preview:</p>
+                <div 
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: emailContent.body }}
+                />
+              </div>
             </div>
           </div>
           
@@ -720,21 +693,18 @@ const CampaignDetails = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Prospect Dialog */}
       <AddProspectDialog 
         isOpen={addProspectDialogOpen} 
         onClose={() => setAddProspectDialogOpen(false)} 
         onProspectAdded={handleProspectAdded}
       />
 
-      {/* Import Prospects Sheet */}
       <ImportProspectsSheet 
         isOpen={importSheetOpen} 
         onClose={() => setImportSheetOpen(false)} 
         onImportComplete={handleProspectAdded}
       />
       
-      {/* Edit Campaign Dialog */}
       {campaign && (
         <EditCampaignDialog
           campaign={campaign}
