@@ -51,7 +51,7 @@ serve(async (req) => {
 
     console.log("Sending request to the external API service for email generation");
 
-    // Make API call to the external service
+    // Make API call to the external service with the exact format required
     const externalApiResponse = await fetch("https://c12e-103-105-227-34.ngrok-free.app/", {
       method: "POST",
       headers: {
