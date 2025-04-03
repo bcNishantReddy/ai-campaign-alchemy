@@ -41,7 +41,7 @@ import AddProspectDialog from "@/components/AddProspectDialog";
 import ImportProspectsSheet from "@/components/ImportProspectsSheet";
 import ProspectRequirements from "@/components/ProspectRequirements";
 import EditCampaignDialog from "@/components/EditCampaignDialog";
-import { generateEmail, sendEmail } from "@/services/emailService";
+import { generateEmail, sendEmail, deleteCampaignWithRelated } from "@/services/emailService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProspectEmailDialog from "@/components/ProspectEmailDialog";
 import CampaignDetailsSidebar from "@/components/CampaignDetailsSidebar";
@@ -156,12 +156,8 @@ const CampaignDetails = () => {
     
     try {
       setIsDeleting(true);
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
+      
+      await deleteCampaignWithRelated(id);
       
       toast.success('Campaign deleted successfully');
       navigate('/dashboard');

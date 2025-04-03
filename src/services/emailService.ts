@@ -176,3 +176,69 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
     throw error;
   }
 };
+
+// Delete campaign and all related data
+export const deleteCampaignWithRelated = async (campaignId: string): Promise<void> => {
+  try {
+    console.log("Deleting campaign and all related data for campaign ID:", campaignId);
+    
+    // First, get all prospects for this campaign
+    const { data: prospects, error: prospectsError } = await supabase
+      .from('prospects')
+      .select('id')
+      .eq('campaign_id', campaignId);
+      
+    if (prospectsError) {
+      console.error("Error fetching prospects:", prospectsError);
+      throw prospectsError;
+    }
+    
+    const prospectIds = prospects?.map(p => p.id) || [];
+    console.log(`Found ${prospectIds.length} prospects to delete`);
+    
+    // Delete all emails related to these prospects
+    if (prospectIds.length > 0) {
+      const { error: emailsError } = await supabase
+        .from('emails')
+        .delete()
+        .in('prospect_id', prospectIds);
+        
+      if (emailsError) {
+        console.error("Error deleting related emails:", emailsError);
+        throw emailsError;
+      }
+      
+      console.log(`Deleted emails for ${prospectIds.length} prospects`);
+    }
+    
+    // Delete all prospects for this campaign
+    const { error: prospectsDeleteError } = await supabase
+      .from('prospects')
+      .delete()
+      .eq('campaign_id', campaignId);
+      
+    if (prospectsDeleteError) {
+      console.error("Error deleting prospects:", prospectsDeleteError);
+      throw prospectsDeleteError;
+    }
+    
+    console.log("Deleted all prospects for campaign");
+    
+    // Finally, delete the campaign
+    const { error: campaignError } = await supabase
+      .from('campaigns')
+      .delete()
+      .eq('id', campaignId);
+      
+    if (campaignError) {
+      console.error("Error deleting campaign:", campaignError);
+      throw campaignError;
+    }
+    
+    console.log("Campaign deleted successfully");
+    
+  } catch (error: any) {
+    console.error("Error in deleteCampaignWithRelated:", error);
+    throw error;
+  }
+};
