@@ -32,23 +32,20 @@ serve(async (req) => {
     
     console.log("Received request data:", JSON.stringify(requestData, null, 2));
 
-    // Validate required fields
+    // Ensure all fields have at least a string value, even if empty
     const requiredFields = [
       'company_name', 'company_description', 'campaign_description',
       'company_rep_name', 'company_rep_role', 'company_rep_email',
       'prospect_company_name', 'prospect_rep_name', 'prospect_rep_email'
     ];
 
+    // Fill empty fields with defaults to prevent validation errors
+    const processedData = { ...requestData };
     for (const field of requiredFields) {
-      if (!requestData[field as keyof EmailGenerationRequest]) {
-        console.error(`Missing required field: ${field}`);
-        return new Response(
-          JSON.stringify({ error: `Missing required field: ${field}` }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+      if (!processedData[field as keyof EmailGenerationRequest]) {
+        processedData[field as keyof EmailGenerationRequest] = 
+          field.includes('description') ? 'No description provided.' : '';
+        console.log(`Set default for empty field: ${field}`);
       }
     }
 
@@ -62,15 +59,15 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          company_name: requestData.company_name,
-          company_description: requestData.company_description,
-          campaign_description: requestData.campaign_description,
-          company_rep_name: requestData.company_rep_name,
-          company_rep_role: requestData.company_rep_role,
-          company_rep_email: requestData.company_rep_email,
-          prospect_company_name: requestData.prospect_company_name,
-          prospect_rep_name: requestData.prospect_rep_name,
-          prospect_rep_email: requestData.prospect_rep_email
+          company_name: processedData.company_name,
+          company_description: processedData.company_description,
+          campaign_description: processedData.campaign_description,
+          company_rep_name: processedData.company_rep_name,
+          company_rep_role: processedData.company_rep_role,
+          company_rep_email: processedData.company_rep_email,
+          prospect_company_name: processedData.prospect_company_name,
+          prospect_rep_name: processedData.prospect_rep_name,
+          prospect_rep_email: processedData.prospect_rep_email
         }),
       });
 

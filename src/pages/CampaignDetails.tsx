@@ -1,7 +1,8 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign, Prospect, Email } from "@/types/database.types";
 import { Spinner } from "@/components/ui/spinner";
@@ -40,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import AddProspectDialog from "@/components/AddProspectDialog";
 import ImportProspectsSheet from "@/components/ImportProspectsSheet";
 import ProspectRequirements from "@/components/ProspectRequirements";
+import EditCampaignDialog from "@/components/EditCampaignDialog";
 import { generateEmail, sendEmail } from "@/services/emailService";
 
 type ProspectWithEmail = Prospect & {
@@ -63,6 +65,7 @@ const CampaignDetails = () => {
   const [isApproving, setIsApproving] = useState(false);
   const [addProspectDialogOpen, setAddProspectDialogOpen] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
+  const [editCampaignDialogOpen, setEditCampaignDialogOpen] = useState(false);
   const [showRequirements, setShowRequirements] = useState(false);
   const [mailjetKeys, setMailjetKeys] = useState<{api_key: string; secret_key: string} | null>(null);
   const [prospectLoadingStates, setProspectLoadingStates] = useState<Record<string, boolean>>({});
@@ -183,19 +186,21 @@ const CampaignDetails = () => {
       // Show a toast that we're generating the email
       const generatingToast = toast.loading(`Generating email for ${prospect.name}...`);
       
-      // Prepare data for the API call
+      // Prepare data for the API call - ensure all fields have values
       const generationData = {
-        company_name: campaign.company_name,
-        company_description: campaign.company_description,
-        campaign_description: campaign.description,
-        company_rep_name: campaign.representative_name,
-        company_rep_role: campaign.representative_role,
-        company_rep_email: campaign.representative_email,
-        prospect_company_name: prospect.company_name,
-        prospect_rep_name: prospect.name,
-        prospect_rep_email: prospect.email,
+        company_name: campaign.company_name || 'Your Company',
+        company_description: campaign.company_description || 'No description provided.',
+        campaign_description: campaign.description || 'No description provided.',
+        company_rep_name: campaign.representative_name || 'Representative',
+        company_rep_role: campaign.representative_role || 'Role',
+        company_rep_email: campaign.representative_email || 'email@example.com',
+        prospect_company_name: prospect.company_name || 'Prospect Company',
+        prospect_rep_name: prospect.name || 'Prospect',
+        prospect_rep_email: prospect.email || 'prospect@example.com',
         prospect_id: prospect.id
       };
+      
+      console.log("Sending email generation data:", generationData);
       
       // Call the API
       const generatedEmail = await generateEmail(generationData);
@@ -367,6 +372,10 @@ const CampaignDetails = () => {
     fetchCampaignData();
   };
 
+  const handleCampaignUpdated = (updatedCampaign: Campaign) => {
+    setCampaign(updatedCampaign);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -418,6 +427,15 @@ const CampaignDetails = () => {
               </div>
               
               <div className="mt-4 md:mt-0 flex space-x-3">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-brand-purple border-brand-purple/20 hover:bg-brand-purple/10"
+                  onClick={() => setEditCampaignDialogOpen(true)}
+                >
+                  <Edit size={16} className="mr-2" />
+                  Edit
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
@@ -452,8 +470,17 @@ const CampaignDetails = () => {
 
           {/* Campaign Details */}
           <div className="bg-white shadow rounded-lg mb-8">
-            <div className="px-6 py-5 border-b border-gray-200">
+            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-medium text-gray-900">Campaign Details</h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setEditCampaignDialogOpen(true)}
+                className="md:hidden"
+              >
+                <Edit size={16} className="mr-2" />
+                Edit
+              </Button>
             </div>
             <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -706,6 +733,16 @@ const CampaignDetails = () => {
         onClose={() => setImportSheetOpen(false)} 
         onImportComplete={handleProspectAdded}
       />
+      
+      {/* Edit Campaign Dialog */}
+      {campaign && (
+        <EditCampaignDialog
+          campaign={campaign}
+          isOpen={editCampaignDialogOpen}
+          onClose={() => setEditCampaignDialogOpen(false)}
+          onCampaignUpdated={handleCampaignUpdated}
+        />
+      )}
       
       <Footer />
     </div>
