@@ -49,6 +49,7 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
       prospect_id: data.prospect_id ? data.prospect_id : 'Not provided'
     });
     
+    // Make the API call to the edge function with all required data
     const { data: response, error } = await supabase.functions.invoke('generate-email', {
       body: data,
     });
@@ -63,8 +64,9 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
       throw new Error('No response received from the server');
     }
 
-    // The response.body may contain HTML - make sure we preserve it
     console.log("Email generated successfully:", response);
+    
+    // Important: return the full response which includes the HTML content
     return response;
   } catch (error: any) {
     console.error('Error generating email:', error);
@@ -99,7 +101,7 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
     delete requestData.mailjet_api_key;
     delete requestData.mailjet_api_secret;
 
-    // Send the email - the HTML body should remain intact in the requestData
+    // Send the email - preserving HTML content
     const { data: response, error } = await supabase.functions.invoke('send-email', {
       body: requestData,
     });
