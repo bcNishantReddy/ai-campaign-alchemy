@@ -1,7 +1,8 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users, Edit, Mail } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users, Edit, Mail, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign, Prospect, Email } from "@/types/database.types";
 import { Spinner } from "@/components/ui/spinner";
@@ -43,6 +44,8 @@ import ProspectRequirements from "@/components/ProspectRequirements";
 import EditCampaignDialog from "@/components/EditCampaignDialog";
 import { generateEmail, sendEmail } from "@/services/emailService";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ProspectEmailDialog from "@/components/ProspectEmailDialog";
+import CampaignDetailsSidebar from "@/components/CampaignDetailsSidebar";
 
 type ProspectWithEmail = Prospect & {
   email_data: Email | null;
@@ -69,6 +72,9 @@ const CampaignDetails = () => {
   const [showRequirements, setShowRequirements] = useState(false);
   const [mailjetKeys, setMailjetKeys] = useState<{api_key: string; secret_key: string} | null>(null);
   const [prospectLoadingStates, setProspectLoadingStates] = useState<Record<string, boolean>>({});
+  const [deleteProspectId, setDeleteProspectId] = useState<string | null>(null);
+  const [isDeletingProspect, setIsDeletingProspect] = useState(false);
+  const [deleteProspectDialogOpen, setDeleteProspectDialogOpen] = useState(false);
 
   const fetchCampaignData = async () => {
     if (!id) return;
@@ -157,7 +163,43 @@ const CampaignDetails = () => {
     }
   };
 
-  const generateEmailForProspect = async (prospect: ProspectWithEmail) => {
+  const deleteProspect = async () => {
+    if (!deleteProspectId) return;
+    
+    try {
+      setIsDeletingProspect(true);
+      
+      // First delete any associated emails
+      const { error: emailError } = await supabase
+        .from('emails')
+        .delete()
+        .eq('prospect_id', deleteProspectId);
+        
+      if (emailError) throw emailError;
+      
+      // Then delete the prospect
+      const { error: prospectError } = await supabase
+        .from('prospects')
+        .delete()
+        .eq('id', deleteProspectId);
+        
+      if (prospectError) throw prospectError;
+      
+      // Update local state
+      setProspects(prospects.filter(p => p.id !== deleteProspectId));
+      toast.success('Prospect deleted successfully');
+      
+    } catch (error: any) {
+      toast.error('Error deleting prospect: ' + error.message);
+      console.error('Error deleting prospect:', error);
+    } finally {
+      setIsDeletingProspect(false);
+      setDeleteProspectDialogOpen(false);
+      setDeleteProspectId(null);
+    }
+  };
+
+  const generateEmailForProspect = async (prospect: ProspectWithEmail, regenerate: boolean = false) => {
     if (!campaign) return;
     
     setProspectLoadingStates(prev => ({ ...prev, [prospect.id]: true }));
@@ -165,10 +207,10 @@ const CampaignDetails = () => {
     setSelectedProspect(prospect);
     
     try {
-      if (prospect.email_data) {
+      if (prospect.email_data && !regenerate) {
         setEmailContent({
-          subject: prospect.email_data.subject,
-          body: prospect.email_data.body
+          subject: prospect.email_data.subject || '',
+          body: prospect.email_data.body || ''
         });
         setEmailDialogOpen(true);
         setProspectLoadingStates(prev => ({ ...prev, [prospect.id]: false }));
@@ -177,7 +219,7 @@ const CampaignDetails = () => {
       
       setIsGeneratingEmail(true);
       
-      const generatingToast = toast.loading(`Generating email for ${prospect.name}...`);
+      const generatingToast = toast.loading(`${regenerate ? 'Regenerating' : 'Generating'} email for ${prospect.name}...`);
       
       const generationData = {
         company_name: campaign.company_name || 'Your Company',
@@ -198,14 +240,33 @@ const CampaignDetails = () => {
       
       toast.dismiss(generatingToast);
       
-      toast.success(`Email generated for ${prospect.name}`);
+      toast.success(`Email ${regenerate ? 'regenerated' : 'generated'} for ${prospect.name}`);
       
       setEmailContent({
-        subject: generatedEmail.subject,
-        body: generatedEmail.body
+        subject: generatedEmail.subject || '',
+        body: generatedEmail.body || ''
       });
       
-      if (!generatedEmail.email_record) {
+      // If email already exists and we're regenerating, update it
+      if (regenerate && prospect.email_data?.id) {
+        const { data: emailData, error } = await supabase
+          .from('emails')
+          .update({
+            subject: generatedEmail.subject,
+            body: generatedEmail.body,
+            status: 'draft'
+          })
+          .eq('id', prospect.email_data.id)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        setProspects(prospects.map(p => 
+          p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
+        ));
+      } else if (!generatedEmail.email_record) {
+        // If no email exists yet, create a new one
         const { data: emailData, error } = await supabase
           .from('emails')
           .insert({
@@ -223,6 +284,7 @@ const CampaignDetails = () => {
           p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
         ));
       } else {
+        // Update with the email record from the response
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
         ));
@@ -273,10 +335,10 @@ const CampaignDetails = () => {
       const sendingToast = toast.loading(`Sending email to ${selectedProspect.name}...`);
       
       const sendData = {
-        from_email: campaign.representative_email,
-        from_name: campaign.representative_name,
-        to_email: selectedProspect.email,
-        to_name: selectedProspect.name,
+        from_email: campaign.representative_email || '',
+        from_name: campaign.representative_name || '',
+        to_email: selectedProspect.email || '',
+        to_name: selectedProspect.name || '',
         subject: emailContent.subject,
         body: emailContent.body,
         user_id: sessionData.session.user.id
@@ -593,6 +655,30 @@ const CampaignDetails = () => {
                                     </>
                                   )}
                                 </Button>
+                                
+                                {prospect.email_data && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => generateEmailForProspect(prospect, true)}
+                                    disabled={prospectLoadingStates[prospect.id] || isGeneratingEmail}
+                                    title="Regenerate Email"
+                                  >
+                                    <RefreshCw size={14} />
+                                  </Button>
+                                )}
+                                
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setDeleteProspectId(prospect.id);
+                                    setDeleteProspectDialogOpen(true);
+                                  }}
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                >
+                                  <Trash size={14} />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -623,93 +709,25 @@ const CampaignDetails = () => {
             </div>
             
             <div className="lg:col-span-3">
-              <ProspectRequirements />
+              <CampaignDetailsSidebar />
             </div>
           </div>
         </div>
       </main>
 
-      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedProspect?.email_data ? "Edit Email" : "Generated Email"}
-            </DialogTitle>
-            <DialogDescription>
-              Review and approve the AI-generated email for {selectedProspect?.name}.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <ScrollArea className="max-h-[calc(90vh-12rem)] overflow-auto pr-4">
-            <div className="space-y-4 py-4">
-              {selectedProspect && campaign && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 rounded-md bg-gray-50">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">From</p>
-                    <div className="flex items-center mt-1">
-                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium">{campaign.representative_name}</p>
-                        <p className="text-xs text-gray-500">{campaign.representative_email}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500">To</p>
-                    <div className="flex items-center mt-1">
-                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium">{selectedProspect.name}</p>
-                        <p className="text-xs text-gray-500">{selectedProspect.email}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label>Subject</Label>
-                <Input 
-                  value={emailContent.subject} 
-                  onChange={(e) => setEmailContent(prev => ({ ...prev, subject: e.target.value }))}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Email Body</Label>
-                <Textarea 
-                  value={emailContent.body} 
-                  onChange={(e) => setEmailContent(prev => ({ ...prev, body: e.target.value }))}
-                  className="min-h-[200px]"
-                />
-                <div className="mt-4 border p-4 rounded-md bg-white">
-                  <p className="text-sm font-medium text-gray-700 mb-2 border-b pb-2">Email Preview</p>
-                  <ScrollArea className="max-h-[350px] overflow-y-auto">
-                    <div 
-                      className="prose max-w-none"
-                      dangerouslySetInnerHTML={{ __html: emailContent.body }}
-                    />
-                  </ScrollArea>
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
-          
-          <DialogFooter className="mt-2 border-t pt-4">
-            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="outline" onClick={rejectEmail} className="border-red-200 text-red-600 hover:bg-red-50">
-              <X size={16} className="mr-2" />
-              Reject
-            </Button>
-            <Button onClick={approveEmail} disabled={isApproving} className="bg-brand-purple hover:bg-brand-purple/90">
-              {isApproving ? <Spinner size="sm" className="mr-2" /> : <Check size={16} className="mr-2" />}
-              {isApproving ? "Approving..." : "Approve & Send"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {selectedProspect && campaign && (
+        <ProspectEmailDialog
+          isOpen={emailDialogOpen}
+          onClose={() => setEmailDialogOpen(false)}
+          prospect={selectedProspect}
+          campaign={campaign}
+          emailContent={emailContent}
+          setEmailContent={setEmailContent}
+          isApproving={isApproving}
+          onApprove={approveEmail}
+          onReject={rejectEmail}
+        />
+      )}
 
       <AddProspectDialog 
         isOpen={addProspectDialogOpen} 
@@ -731,14 +749,43 @@ const CampaignDetails = () => {
           onCampaignUpdated={handleCampaignUpdated}
         />
       )}
+
+      <AlertDialog open={deleteProspectDialogOpen} onOpenChange={setDeleteProspectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Prospect</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this prospect? This will also remove any associated emails and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteProspectDialogOpen(false);
+              setDeleteProspectId(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteProspect}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={isDeletingProspect}
+            >
+              {isDeletingProspect ? (
+                <>
+                  <Spinner size="sm" className="mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Prospect"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <Footer />
     </div>
   );
 };
-
-const Label = ({ children }: { children: React.ReactNode }) => (
-  <label className="block text-sm font-medium text-gray-700">{children}</label>
-);
 
 export default CampaignDetails;
