@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users, Edit } from "lucide-react";
+import { ArrowLeft, Plus, Trash, Send, Check, X, Pencil, Upload, Users, Edit, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Campaign, Prospect, Email } from "@/types/database.types";
 import { Spinner } from "@/components/ui/spinner";
@@ -42,6 +42,7 @@ import ImportProspectsSheet from "@/components/ImportProspectsSheet";
 import ProspectRequirements from "@/components/ProspectRequirements";
 import EditCampaignDialog from "@/components/EditCampaignDialog";
 import { generateEmail, sendEmail } from "@/services/emailService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type ProspectWithEmail = Prospect & {
   email_data: Email | null;
@@ -503,18 +504,12 @@ const CampaignDetails = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-9">
               <div className="bg-white shadow rounded-lg">
                 <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
                   <div className="flex items-center">
                     <h2 className="text-lg font-medium text-gray-900">Prospects</h2>
-                    <button 
-                      onClick={() => setShowRequirements(!showRequirements)}
-                      className="ml-2 text-xs text-brand-purple font-medium hover:underline md:hidden"
-                    >
-                      {showRequirements ? "Hide Requirements" : "View Requirements"}
-                    </button>
                   </div>
                   <div className="flex space-x-3">
                     <Button 
@@ -535,12 +530,6 @@ const CampaignDetails = () => {
                     </Button>
                   </div>
                 </div>
-                
-                {showRequirements && (
-                  <div className="md:hidden p-4 border-b border-gray-200">
-                    <ProspectRequirements />
-                  </div>
-                )}
                 
                 {prospects.length > 0 ? (
                   <div className="overflow-x-auto">
@@ -633,7 +622,7 @@ const CampaignDetails = () => {
               </div>
             </div>
             
-            <div className="hidden lg:block">
+            <div className="lg:col-span-3">
               <ProspectRequirements />
             </div>
           </div>
@@ -641,7 +630,7 @@ const CampaignDetails = () => {
       </main>
 
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               {selectedProspect?.email_data ? "Edit Email" : "Generated Email"}
@@ -651,33 +640,62 @@ const CampaignDetails = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Subject</Label>
-              <Input 
-                value={emailContent.subject} 
-                onChange={(e) => setEmailContent(prev => ({ ...prev, subject: e.target.value }))}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Email Body</Label>
-              <Textarea 
-                value={emailContent.body} 
-                onChange={(e) => setEmailContent(prev => ({ ...prev, body: e.target.value }))}
-                className="min-h-[200px]"
-              />
-              <div className="mt-4 border p-4 rounded-md bg-white">
-                <p className="text-sm text-gray-500 mb-2">Email Preview:</p>
-                <div 
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: emailContent.body }}
+          <ScrollArea className="max-h-[calc(90vh-12rem)] overflow-auto pr-4">
+            <div className="space-y-4 py-4">
+              {selectedProspect && campaign && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 rounded-md bg-gray-50">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">From</p>
+                    <div className="flex items-center mt-1">
+                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">{campaign.representative_name}</p>
+                        <p className="text-xs text-gray-500">{campaign.representative_email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">To</p>
+                    <div className="flex items-center mt-1">
+                      <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium">{selectedProspect.name}</p>
+                        <p className="text-xs text-gray-500">{selectedProspect.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <Input 
+                  value={emailContent.subject} 
+                  onChange={(e) => setEmailContent(prev => ({ ...prev, subject: e.target.value }))}
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label>Email Body</Label>
+                <Textarea 
+                  value={emailContent.body} 
+                  onChange={(e) => setEmailContent(prev => ({ ...prev, body: e.target.value }))}
+                  className="min-h-[200px]"
+                />
+                <div className="mt-4 border p-4 rounded-md bg-white">
+                  <p className="text-sm font-medium text-gray-700 mb-2 border-b pb-2">Email Preview</p>
+                  <ScrollArea className="max-h-[350px] overflow-y-auto">
+                    <div 
+                      className="prose max-w-none"
+                      dangerouslySetInnerHTML={{ __html: emailContent.body }}
+                    />
+                  </ScrollArea>
+                </div>
+              </div>
             </div>
-          </div>
+          </ScrollArea>
           
-          <DialogFooter>
+          <DialogFooter className="mt-2 border-t pt-4">
             <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
               Cancel
             </Button>
