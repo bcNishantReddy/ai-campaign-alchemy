@@ -44,7 +44,10 @@ export interface EmailSendRequest {
 // Generate email function
 export const generateEmail = async (data: EmailGenerationRequest): Promise<EmailGenerationResponse> => {
   try {
-    console.log("Generating email with data:", data);
+    console.log("Generating email with data:", {
+      ...data,
+      prospect_id: data.prospect_id ? data.prospect_id : 'Not provided'
+    });
     
     const { data: response, error } = await supabase.functions.invoke('generate-email', {
       body: data,
@@ -53,6 +56,11 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
     if (error) {
       console.error("Error from generate-email function:", error);
       throw new Error(error.message || 'Failed to generate email');
+    }
+
+    if (!response) {
+      console.error("No response from generate-email function");
+      throw new Error('No response received from the server');
     }
 
     console.log("Email generated successfully:", response);
