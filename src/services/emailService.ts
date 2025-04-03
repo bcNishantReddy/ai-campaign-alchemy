@@ -13,6 +13,7 @@ export interface EmailGenerationRequest {
   prospect_company_name: string;
   prospect_rep_name: string;
   prospect_rep_email: string;
+  prospect_rep_role: string; // Added new field
   prospect_id?: string;
 }
 

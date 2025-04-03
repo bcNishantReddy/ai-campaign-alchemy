@@ -17,6 +17,7 @@ interface EmailGenerationRequest {
   prospect_company_name: string;
   prospect_rep_name: string;
   prospect_rep_email: string;
+  prospect_rep_role: string; // Added new field
   user_id?: string;
   prospect_id?: string;
 }
@@ -36,7 +37,7 @@ serve(async (req) => {
     const requiredFields = [
       'company_name', 'company_description', 'campaign_description',
       'company_rep_name', 'company_rep_role', 'company_rep_email',
-      'prospect_company_name', 'prospect_rep_name', 'prospect_rep_email'
+      'prospect_company_name', 'prospect_rep_name', 'prospect_rep_email', 'prospect_rep_role'
     ];
 
     // Fill empty fields with defaults to prevent validation errors
@@ -66,7 +67,8 @@ serve(async (req) => {
         company_rep_email: processedData.company_rep_email,
         prospect_company_name: processedData.prospect_company_name,
         prospect_rep_name: processedData.prospect_rep_name,
-        prospect_rep_email: processedData.prospect_rep_email
+        prospect_rep_email: processedData.prospect_rep_email,
+        prospect_rep_role: processedData.prospect_rep_role // Added new field
       }),
     });
 
