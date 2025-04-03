@@ -97,20 +97,31 @@ const CampaignDetails = () => {
         
       if (prospectsError) throw prospectsError;
       
-      const prospectsWithEmails: ProspectWithEmail[] = await Promise.all(
-        (prospectsData || []).map(async (prospect) => {
-          const { data: emailData } = await supabase
-            .from('emails')
-            .select('*')
-            .eq('prospect_id', prospect.id)
-            .maybeSingle();
-            
-          return {
-            ...prospect,
-            email_data: emailData || null
-          } as ProspectWithEmail;
-        })
-      );
+      const prospectIds = (prospectsData || []).map(prospect => prospect.id);
+      
+      let emailsData: any[] = [];
+      
+      if (prospectIds.length > 0) {
+        const { data: emails, error: emailsError } = await supabase
+          .from('emails')
+          .select('*')
+          .in('prospect_id', prospectIds);
+          
+        if (emailsError) {
+          console.error("Error fetching emails:", emailsError);
+        } else {
+          emailsData = emails || [];
+          console.log(`Fetched ${emailsData.length} emails for ${prospectIds.length} prospects`);
+        }
+      }
+      
+      const prospectsWithEmails: ProspectWithEmail[] = (prospectsData || []).map(prospect => {
+        const email = emailsData.find(email => email.prospect_id === prospect.id);
+        return {
+          ...prospect,
+          email_data: email || null
+        } as ProspectWithEmail;
+      });
       
       setProspects(prospectsWithEmails);
       
@@ -246,7 +257,7 @@ const CampaignDetails = () => {
       
       if (generatedEmail.email_record) {
         setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
+          p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record } : p
         ));
       } else {
         const { data: emailData, error } = await supabase
@@ -259,7 +270,7 @@ const CampaignDetails = () => {
           console.error("Error fetching email:", error);
         } else if (emailData) {
           setProspects(prospects.map(p => 
-            p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
+            p.id === prospect.id ? { ...p, email_data: emailData } : p
           ));
         } else {
           console.warn("No email record returned from API or found in database, creating one manually");
@@ -278,7 +289,7 @@ const CampaignDetails = () => {
             console.error("Error creating email record:", insertError);
           } else {
             setProspects(prospects.map(p => 
-              p.id === prospect.id ? { ...p, email_data: newEmail as Email } : p
+              p.id === prospect.id ? { ...p, email_data: newEmail } : p
             ));
           }
         }

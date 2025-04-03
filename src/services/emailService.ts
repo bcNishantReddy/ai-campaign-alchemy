@@ -13,7 +13,7 @@ export interface EmailGenerationRequest {
   prospect_company_name: string;
   prospect_rep_name: string;
   prospect_rep_email: string;
-  prospect_rep_role: string; // Added new field
+  prospect_rep_role: string; 
   prospect_id?: string;
 }
 
@@ -40,7 +40,7 @@ export interface EmailSendRequest {
   mailjet_api_key?: string;
   mailjet_api_secret?: string;
   user_id: string;
-  email_id?: string; // Added email_id for tracking
+  email_id?: string;
 }
 
 // Generate email function
@@ -68,29 +68,44 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
 
     console.log("Email generated successfully:", response);
     
-    // Ensure email_record exists - if it doesn't, create a record in the database
+    // If there's no email_record in the response but we have a prospect_id, 
+    // fetch the email record from the database
     if (!response.email_record && data.prospect_id) {
-      console.log("No email record returned from function, creating one manually");
-      const { data: emailRecord, error: insertError } = await supabase
+      console.log("No email record in response, fetching from database");
+      const { data: emailRecord, error: fetchError } = await supabase
         .from('emails')
-        .insert({
-          prospect_id: data.prospect_id,
-          subject: response.subject,
-          body: response.body,
-          status: 'draft'
-        })
-        .select()
-        .single();
+        .select('*')
+        .eq('prospect_id', data.prospect_id)
+        .maybeSingle();
         
-      if (insertError) {
-        console.error("Error creating email record:", insertError);
-      } else {
-        console.log("Email record created successfully:", emailRecord);
+      if (fetchError) {
+        console.error("Error fetching email record:", fetchError);
+      } else if (emailRecord) {
+        console.log("Email record fetched successfully:", emailRecord);
         response.email_record = emailRecord;
+      } else {
+        // If still no email record found, create one manually
+        console.log("No email record found in database, creating one manually");
+        const { data: newEmailRecord, error: insertError } = await supabase
+          .from('emails')
+          .insert({
+            prospect_id: data.prospect_id,
+            subject: response.subject,
+            body: response.body,
+            status: 'draft'
+          })
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Error creating email record:", insertError);
+        } else {
+          console.log("Email record created successfully:", newEmailRecord);
+          response.email_record = newEmailRecord;
+        }
       }
     }
     
-    // Important: return the full response which includes the HTML content
     return response;
   } catch (error: any) {
     console.error('Error generating email:', error);
@@ -137,6 +152,23 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
     }
 
     console.log("Email sent successfully:", response);
+    
+    // Update the email status in the database if email_id was provided
+    if (data.email_id) {
+      const { error: updateError } = await supabase
+        .from('emails')
+        .update({ 
+          status: 'sent',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', data.email_id);
+        
+      if (updateError) {
+        console.error("Error updating email status:", updateError);
+        // Don't throw here, we still want to return success if the email was sent
+      }
+    }
+    
     return response;
   } catch (error: any) {
     console.error('Error sending email:', error);

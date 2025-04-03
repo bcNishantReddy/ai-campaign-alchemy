@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type ProspectWithEmail = Prospect & {
   email_data: Email | null;
@@ -56,15 +57,25 @@ const ProspectEmailDialog: React.FC<ProspectEmailDialogProps> = ({
           return;
         }
         
-        // Save email content to database
-        await supabase
-          .from('emails')
-          .update({
-            subject: emailContent.subject,
-            body: emailContent.body,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', prospect.email_data.id);
+        try {
+          // Save email content to database
+          const { error } = await supabase
+            .from('emails')
+            .update({
+              subject: emailContent.subject,
+              body: emailContent.body,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', prospect.email_data.id);
+            
+          if (error) {
+            console.error("Error saving email content:", error);
+          } else {
+            console.log("Email content saved successfully");
+          }
+        } catch (error) {
+          console.error("Error in saveEmailContent:", error);
+        }
       };
       
       // Use a debounce to avoid too many updates
