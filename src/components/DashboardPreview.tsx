@@ -2,7 +2,21 @@
 import { BarChart3, Mail, Users, CheckCircle, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const DashboardPreview = () => {
+interface DashboardPreviewProps {
+  stats?: {
+    campaigns: number;
+    emailsSent: number;
+    prospects: number;
+    responseRate: number;
+  };
+}
+
+const DashboardPreview = ({ stats = {
+  campaigns: 12,
+  emailsSent: 1284,
+  prospects: 326,
+  responseRate: 22
+} }: DashboardPreviewProps) => {
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 max-w-5xl mx-auto">
       {/* Dashboard Header - Updated to match the image */}
@@ -27,7 +41,7 @@ const DashboardPreview = () => {
               <BarChart3 size={14} />
             </span>
           </div>
-          <p className="text-2xl font-semibold mt-2">12</p>
+          <p className="text-2xl font-semibold mt-2">{stats.campaigns}</p>
           <span className="text-xs text-green-600 mt-1">↑ 24% from last month</span>
         </div>
         
@@ -38,7 +52,7 @@ const DashboardPreview = () => {
               <Mail size={14} />
             </span>
           </div>
-          <p className="text-2xl font-semibold mt-2">1,284</p>
+          <p className="text-2xl font-semibold mt-2">{stats.emailsSent}</p>
           <span className="text-xs text-green-600 mt-1">↑ 12% from last week</span>
         </div>
         
@@ -49,7 +63,7 @@ const DashboardPreview = () => {
               <Users size={14} />
             </span>
           </div>
-          <p className="text-2xl font-semibold mt-2">326</p>
+          <p className="text-2xl font-semibold mt-2">{stats.prospects}</p>
           <span className="text-xs text-green-600 mt-1">↑ 18% from last month</span>
         </div>
         
@@ -60,7 +74,7 @@ const DashboardPreview = () => {
               <CheckCircle size={14} />
             </span>
           </div>
-          <p className="text-2xl font-semibold mt-2">22%</p>
+          <p className="text-2xl font-semibold mt-2">{stats.responseRate}%</p>
           <span className="text-xs text-green-600 mt-1">↑ 5% from last campaign</span>
         </div>
       </div>

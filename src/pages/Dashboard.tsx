@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -12,12 +13,23 @@ import Footer from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface DashboardStats {
+  totalEmails: number;
+  totalProspects: number;
+  pendingApprovals: number;
+}
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalEmails: 0,
+    totalProspects: 0,
+    pendingApprovals: 0
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,10 +55,16 @@ const Dashboard = () => {
         const { data, error } = await supabase
           .from('campaigns')
           .select('*')
+          .eq('user_id', user?.id || '')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         setCampaigns(data || []);
+
+        // Fetch statistics after campaigns are loaded
+        if (user) {
+          await fetchDashboardStats(user.id);
+        }
       } catch (error: any) {
         toast.error('Error loading campaigns: ' + error.message);
         console.error('Error loading campaigns:', error);
@@ -57,6 +75,75 @@ const Dashboard = () => {
 
     fetchData();
   }, [user]);
+
+  const fetchDashboardStats = async (userId: string) => {
+    try {
+      // Get all campaign IDs for the user
+      const { data: userCampaigns, error: campaignsError } = await supabase
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', userId);
+
+      if (campaignsError) throw campaignsError;
+      
+      if (!userCampaigns || userCampaigns.length === 0) {
+        setStats({ totalEmails: 0, totalProspects: 0, pendingApprovals: 0 });
+        return;
+      }
+
+      const campaignIds = userCampaigns.map(campaign => campaign.id);
+
+      // Get total prospects
+      const { count: totalProspects, error: prospectsError } = await supabase
+        .from('prospects')
+        .select('*', { count: 'exact', head: true })
+        .in('campaign_id', campaignIds);
+
+      if (prospectsError) throw prospectsError;
+
+      // Get prospects IDs to fetch emails
+      const { data: prospectIds, error: prospectIdsError } = await supabase
+        .from('prospects')
+        .select('id')
+        .in('campaign_id', campaignIds);
+
+      if (prospectIdsError) throw prospectIdsError;
+
+      if (!prospectIds || prospectIds.length === 0) {
+        setStats({ totalEmails: 0, totalProspects: totalProspects || 0, pendingApprovals: 0 });
+        return;
+      }
+
+      const pIds = prospectIds.map(p => p.id);
+
+      // Get sent emails count
+      const { count: sentEmails, error: sentEmailsError } = await supabase
+        .from('emails')
+        .select('*', { count: 'exact', head: true })
+        .in('prospect_id', pIds)
+        .eq('status', 'sent');
+
+      if (sentEmailsError) throw sentEmailsError;
+
+      // Get pending approval emails count
+      const { count: pendingApprovals, error: pendingApprovalsError } = await supabase
+        .from('emails')
+        .select('*', { count: 'exact', head: true })
+        .in('prospect_id', pIds)
+        .eq('status', 'draft');
+
+      if (pendingApprovalsError) throw pendingApprovalsError;
+
+      setStats({
+        totalEmails: sentEmails || 0,
+        totalProspects: totalProspects || 0,
+        pendingApprovals: pendingApprovals || 0
+      });
+    } catch (error: any) {
+      console.error('Error fetching dashboard stats:', error);
+      toast.error('Failed to load dashboard statistics');
+    }
+  };
 
   const getUserInitial = () => {
     if (profile?.name) {
@@ -145,7 +232,7 @@ const Dashboard = () => {
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">Emails Sent</dt>
                       <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900">0</div>
+                        <div className="text-2xl font-semibold text-gray-900">{stats.totalEmails}</div>
                       </dd>
                     </dl>
                   </div>
@@ -163,7 +250,7 @@ const Dashboard = () => {
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">Total Prospects</dt>
                       <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900">0</div>
+                        <div className="text-2xl font-semibold text-gray-900">{stats.totalProspects}</div>
                       </dd>
                     </dl>
                   </div>
@@ -181,7 +268,7 @@ const Dashboard = () => {
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">Pending Approvals</dt>
                       <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900">0</div>
+                        <div className="text-2xl font-semibold text-gray-900">{stats.pendingApprovals}</div>
                       </dd>
                     </dl>
                   </div>
@@ -236,7 +323,7 @@ const Dashboard = () => {
                           </p>
                           <p className="flex items-center">
                             <Mail className="mr-1.5 h-4 w-4 text-gray-400" aria-hidden="true" />
-                            0 emails
+                            {stats.totalEmails} emails
                           </p>
                         </div>
                       </div>
