@@ -15,6 +15,7 @@ interface EmailSendRequest {
   subject: string;
   body: string;
   user_id: string;
+  email_id?: string; // Optional email ID for tracking
 }
 
 serve(async (req) => {
@@ -25,7 +26,10 @@ serve(async (req) => {
 
   try {
     const requestData: EmailSendRequest = await req.json();
-    console.log("Received email send request:", requestData);
+    console.log("Received email send request:", {
+      ...requestData,
+      body: requestData.body.length > 100 ? requestData.body.substring(0, 100) + '...' : requestData.body
+    });
 
     // Validate required fields
     const requiredFields = [
@@ -93,7 +97,8 @@ serve(async (req) => {
     console.log("Sending request to the email service:", {
       ...externalApiData,
       mailjet_api_key: "[REDACTED]",
-      mailjet_api_secret: "[REDACTED]"
+      mailjet_api_secret: "[REDACTED]",
+      body: externalApiData.body.length > 100 ? externalApiData.body.substring(0, 100) + '...' : externalApiData.body
     });
 
     // Forward the request to the external email sending service
@@ -106,10 +111,17 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error response from email service:", errorData);
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+        console.error("Error response from email service:", errorData);
+      } catch (parseError) {
+        console.error("Failed to parse error response:", parseError);
+      }
+      
       return new Response(
-        JSON.stringify({ error: `Error sending email: ${errorData.error || response.statusText}` }),
+        JSON.stringify({ error: `Error sending email: ${errorMessage}` }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -120,8 +132,24 @@ serve(async (req) => {
     const emailResult = await response.json();
     console.log("Email sent successfully:", emailResult);
     
+    // Update the email status in the database if an email_id was provided
+    if (requestData.email_id) {
+      const { error: updateError } = await supabase
+        .from('emails')
+        .update({ status: 'sent', updated_at: new Date().toISOString() })
+        .eq('id', requestData.email_id);
+        
+      if (updateError) {
+        console.error("Error updating email status:", updateError);
+        // We don't want to fail the response if this update fails
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ message: "Email sent successfully!" }),
+      JSON.stringify({ 
+        message: "Email sent successfully!",
+        email_result: emailResult 
+      }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

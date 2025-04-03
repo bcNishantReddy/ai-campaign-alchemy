@@ -40,6 +40,7 @@ export interface EmailSendRequest {
   mailjet_api_key?: string;
   mailjet_api_secret?: string;
   user_id: string;
+  email_id?: string; // Added email_id for tracking
 }
 
 // Generate email function
@@ -88,6 +89,7 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
     
     console.log("Sending email with data:", {
       ...data,
+      body: data.body.length > 100 ? data.body.substring(0, 100) + '...' : data.body,
       mailjet_api_key: data.mailjet_api_key ? "[REDACTED]" : undefined,
       mailjet_api_secret: data.mailjet_api_secret ? "[REDACTED]" : undefined
     });

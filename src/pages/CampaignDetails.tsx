@@ -250,7 +250,8 @@ const CampaignDetails = () => {
           .update({
             subject: generatedEmail.subject,
             body: generatedEmail.body,
-            status: 'draft'
+            status: 'draft',
+            updated_at: new Date().toISOString()
           })
           .eq('id', prospect.email_data.id)
           .select()
@@ -261,7 +262,11 @@ const CampaignDetails = () => {
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
         ));
-      } else if (!generatedEmail.email_record) {
+      } else if (generatedEmail.email_record) {
+        setProspects(prospects.map(p => 
+          p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
+        ));
+      } else {
         const { data: emailData, error } = await supabase
           .from('emails')
           .insert({
@@ -277,10 +282,6 @@ const CampaignDetails = () => {
         
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
-        ));
-      } else {
-        setProspects(prospects.map(p => 
-          p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
         ));
       }
       
@@ -305,7 +306,8 @@ const CampaignDetails = () => {
         .update({
           status: 'approved',
           subject: emailContent.subject,
-          body: emailContent.body
+          body: emailContent.body,
+          updated_at: new Date().toISOString()
         })
         .eq('id', selectedProspect.email_data.id)
         .select()
@@ -318,11 +320,12 @@ const CampaignDetails = () => {
       ));
       
       toast.success('Email approved successfully');
-      setEmailDialogOpen(false);
       
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.warning('User not authenticated. Please log in again.');
+        setIsApproving(false);
+        setEmailDialogOpen(false);
         return;
       }
       
@@ -335,7 +338,8 @@ const CampaignDetails = () => {
         to_name: selectedProspect.name || '',
         subject: emailContent.subject,
         body: emailContent.body,
-        user_id: sessionData.session.user.id
+        user_id: sessionData.session.user.id,
+        email_id: selectedProspect.email_data.id
       };
       
       const response = await sendEmail(sendData);
@@ -344,7 +348,10 @@ const CampaignDetails = () => {
       
       const { data, error: updateError } = await supabase
         .from('emails')
-        .update({ status: 'sent' })
+        .update({ 
+          status: 'sent',
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', selectedProspect.email_data.id)
         .select()
         .single();
@@ -356,6 +363,7 @@ const CampaignDetails = () => {
       ));
       
       toast.success(`Email sent to ${selectedProspect.name}`);
+      setEmailDialogOpen(false);
     } catch (error: any) {
       toast.error('Error approving/sending email: ' + error.message);
       console.error('Error approving/sending email:', error);
