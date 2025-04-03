@@ -25,6 +25,7 @@ serve(async (req) => {
 
   try {
     const requestData: EmailSendRequest = await req.json();
+    console.log("Received email send request:", requestData);
 
     // Validate required fields
     const requiredFields = [
@@ -43,13 +44,23 @@ serve(async (req) => {
       }
     }
 
-    // Initialize Supabase client
+    // Create a Supabase client to fetch the user's Mailjet API keys
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseServiceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
-    if (!supabaseUrl || !supabaseServiceKey) {
+    const supabase = createClient(supabaseUrl, supabaseServiceRole);
+    
+    // Get the user's Mailjet API keys from the database
+    const { data: apiKeysData, error: apiKeysError } = await supabase
+      .from('user_api_keys')
+      .select('mailjet_api_key, mailjet_secret_key')
+      .eq('user_id', requestData.user_id)
+      .maybeSingle();
+      
+    if (apiKeysError) {
+      console.error("Error fetching API keys:", apiKeysError);
       return new Response(
-        JSON.stringify({ error: 'Server configuration error: Missing Supabase credentials' }),
+        JSON.stringify({ error: `Error fetching API keys: ${apiKeysError.message}` }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -57,32 +68,9 @@ serve(async (req) => {
       );
     }
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Retrieve user's Mailjet API keys from the database
-    const { data: apiKeysData, error: apiKeysError } = await supabase
-      .from('user_api_keys')
-      .select('mailjet_api_key, mailjet_secret_key')
-      .eq('user_id', requestData.user_id)
-      .single();
-
-    if (apiKeysError || !apiKeysData) {
+    if (!apiKeysData || !apiKeysData.mailjet_api_key || !apiKeysData.mailjet_secret_key) {
       return new Response(
-        JSON.stringify({ 
-          error: `Error retrieving Mailjet API keys: ${apiKeysError?.message || 'API keys not found'}` 
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const { mailjet_api_key, mailjet_secret_key } = apiKeysData;
-    
-    if (!mailjet_api_key || !mailjet_secret_key) {
-      return new Response(
-        JSON.stringify({ error: 'Mailjet API keys not configured for this user' }),
+        JSON.stringify({ error: "Mailjet API keys not configured for this user" }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -90,17 +78,23 @@ serve(async (req) => {
       );
     }
 
-    // Prepare the email request for the external service
-    const emailRequest = {
+    // Prepare the data for the external API call
+    const externalApiData = {
       from_email: requestData.from_email,
       from_name: requestData.from_name,
       to_email: requestData.to_email,
       to_name: requestData.to_name,
       subject: requestData.subject,
       body: requestData.body,
-      mailjet_api_key: mailjet_api_key,
-      mailjet_api_secret: mailjet_secret_key
+      mailjet_api_key: apiKeysData.mailjet_api_key,
+      mailjet_api_secret: apiKeysData.mailjet_secret_key
     };
+
+    console.log("Sending request to the email service:", {
+      ...externalApiData,
+      mailjet_api_key: "[REDACTED]",
+      mailjet_api_secret: "[REDACTED]"
+    });
 
     // Forward the request to the external email sending service
     const response = await fetch("https://c12e-103-105-227-34.ngrok-free.app/send_email", {
@@ -108,11 +102,12 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(emailRequest),
+      body: JSON.stringify(externalApiData),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("Error response from email service:", errorData);
       return new Response(
         JSON.stringify({ error: `Error sending email: ${errorData.error || response.statusText}` }),
         { 
@@ -122,10 +117,11 @@ serve(async (req) => {
       );
     }
 
-    const result = await response.json();
+    const emailResult = await response.json();
+    console.log("Email sent successfully:", emailResult);
     
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({ message: "Email sent successfully!" }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

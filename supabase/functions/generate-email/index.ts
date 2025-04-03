@@ -47,6 +47,8 @@ serve(async (req) => {
       }
     }
 
+    console.log("Sending request to the AI service for email generation:", requestData);
+
     // Forward the request to the external AI email generation service
     const response = await fetch("https://c12e-103-105-227-34.ngrok-free.app/generate_email", {
       method: "POST",
@@ -58,6 +60,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error("Error response from AI service:", errorData);
       return new Response(
         JSON.stringify({ error: `Error generating email: ${errorData.error || response.statusText}` }),
         { 
@@ -68,6 +71,7 @@ serve(async (req) => {
     }
 
     const emailData = await response.json();
+    console.log("Successfully generated email:", emailData);
     
     return new Response(
       JSON.stringify(emailData),

@@ -42,14 +42,18 @@ export interface EmailSendRequest {
 // Generate email function
 export const generateEmail = async (data: EmailGenerationRequest): Promise<EmailGenerationResponse> => {
   try {
+    console.log("Generating email with data:", data);
+    
     const { data: response, error } = await supabase.functions.invoke('generate-email', {
       body: data,
     });
 
     if (error) {
+      console.error("Error from generate-email function:", error);
       throw new Error(error.message || 'Failed to generate email');
     }
 
+    console.log("Email generated successfully:", response);
     return response;
   } catch (error: any) {
     console.error('Error generating email:', error);
@@ -68,6 +72,12 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
       throw new Error('User not authenticated');
     }
     
+    console.log("Sending email with data:", {
+      ...data,
+      mailjet_api_key: data.mailjet_api_key ? "[REDACTED]" : undefined,
+      mailjet_api_secret: data.mailjet_api_secret ? "[REDACTED]" : undefined
+    });
+    
     // Ensure user_id is set in the request
     const requestData: EmailSendRequest = {
       ...data,
@@ -83,9 +93,11 @@ export const sendEmail = async (data: EmailSendRequest): Promise<{ message: stri
     });
 
     if (error) {
+      console.error("Error from send-email function:", error);
       throw new Error(error.message || 'Failed to send email');
     }
 
+    console.log("Email sent successfully:", response);
     return response;
   } catch (error: any) {
     console.error('Error sending email:', error);
