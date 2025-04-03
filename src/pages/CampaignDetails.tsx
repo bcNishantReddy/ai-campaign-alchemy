@@ -253,13 +253,14 @@ const CampaignDetails = () => {
       toast.success('Email approved successfully');
       setEmailDialogOpen(false);
       
-      // Check if we have Mailjet API keys
-      if (!mailjetKeys || !mailjetKeys.api_key || !mailjetKeys.secret_key) {
-        toast.warning('Mailjet API keys not found. Please add them in settings to send emails.');
+      // Get current user
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.warning('User not authenticated. Please log in again.');
         return;
       }
       
-      // Send the email via Mailjet
+      // Send the email via our edge function
       const sendData = {
         from_email: campaign.representative_email,
         from_name: campaign.representative_name,
@@ -267,8 +268,7 @@ const CampaignDetails = () => {
         to_name: selectedProspect.name,
         subject: emailContent.subject,
         body: emailContent.body,
-        mailjet_api_key: mailjetKeys.api_key,
-        mailjet_api_secret: mailjetKeys.secret_key
+        user_id: sessionData.session.user.id
       };
       
       // Call the send email API

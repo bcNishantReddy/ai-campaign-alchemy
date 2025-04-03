@@ -1,8 +1,6 @@
 
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-// API base URL
-const API_BASE_URL = "http://localhost:5000";
 
 // Types for email generation request
 export interface EmailGenerationRequest {
@@ -36,27 +34,23 @@ export interface EmailSendRequest {
   to_name: string;
   subject: string;
   body: string;
-  mailjet_api_key: string;
-  mailjet_api_secret: string;
+  mailjet_api_key?: string;
+  mailjet_api_secret?: string;
+  user_id: string;
 }
 
 // Generate email function
 export const generateEmail = async (data: EmailGenerationRequest): Promise<EmailGenerationResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/generate_email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+    const { data: response, error } = await supabase.functions.invoke('generate-email', {
+      body: data,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to generate email');
+    if (error) {
+      throw new Error(error.message || 'Failed to generate email');
     }
 
-    return await response.json();
+    return response;
   } catch (error: any) {
     console.error('Error generating email:', error);
     toast.error(`Error generating email: ${error.message}`);
@@ -67,20 +61,32 @@ export const generateEmail = async (data: EmailGenerationRequest): Promise<Email
 // Send email function
 export const sendEmail = async (data: EmailSendRequest): Promise<{ message: string }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/send_email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+    // Get the current user
+    const { data: sessionData } = await supabase.auth.getSession();
+    
+    if (!sessionData.session) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Ensure user_id is set in the request
+    const requestData: EmailSendRequest = {
+      ...data,
+      user_id: data.user_id || sessionData.session.user.id
+    };
+    
+    // Remove mailjet keys from the request since they'll be retrieved from the database
+    delete requestData.mailjet_api_key;
+    delete requestData.mailjet_api_secret;
+
+    const { data: response, error } = await supabase.functions.invoke('send-email', {
+      body: requestData,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to send email');
+    if (error) {
+      throw new Error(error.message || 'Failed to send email');
     }
 
-    return await response.json();
+    return response;
   } catch (error: any) {
     console.error('Error sending email:', error);
     toast.error(`Error sending email: ${error.message}`);
