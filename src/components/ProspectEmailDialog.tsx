@@ -45,7 +45,7 @@ const ProspectEmailDialog: React.FC<ProspectEmailDialogProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {prospect?.email_data ? "Edit Email" : "Generated Email"}
@@ -55,31 +55,31 @@ const ProspectEmailDialog: React.FC<ProspectEmailDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 rounded-md bg-gray-50 mt-4">
-          <div>
-            <p className="text-xs font-medium text-gray-500">From</p>
-            <div className="flex items-center mt-1">
-              <Mail className="h-4 w-4 text-gray-400 mr-2" />
-              <div>
-                <p className="text-sm font-medium">{campaign.representative_name}</p>
-                <p className="text-xs text-gray-500">{campaign.representative_email}</p>
+        <ScrollArea className="flex-1 overflow-y-auto max-h-[calc(90vh-8rem)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 rounded-md bg-gray-50 mt-4">
+            <div>
+              <p className="text-xs font-medium text-gray-500">From</p>
+              <div className="flex items-center mt-1">
+                <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                <div>
+                  <p className="text-sm font-medium">{campaign.representative_name}</p>
+                  <p className="text-xs text-gray-500">{campaign.representative_email}</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500">To</p>
+              <div className="flex items-center mt-1">
+                <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                <div>
+                  <p className="text-sm font-medium">{prospect.name}</p>
+                  <p className="text-xs text-gray-500">{prospect.email}</p>
+                </div>
               </div>
             </div>
           </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500">To</p>
-            <div className="flex items-center mt-1">
-              <Mail className="h-4 w-4 text-gray-400 mr-2" />
-              <div>
-                <p className="text-sm font-medium">{prospect.name}</p>
-                <p className="text-xs text-gray-500">{prospect.email}</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <ScrollArea className="max-h-[calc(90vh-16rem)] pr-4">
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 px-1">
             <div className="space-y-2">
               <Label>Subject</Label>
               <Input
@@ -97,19 +97,19 @@ const ProspectEmailDialog: React.FC<ProspectEmailDialogProps> = ({
               />
             </div>
           </div>
+
+          <div className="mt-4 border p-4 rounded-md bg-white">
+            <p className="text-sm font-medium text-gray-700 mb-2 border-b pb-2">Email Preview</p>
+            <ScrollArea className="max-h-[200px] overflow-y-auto">
+              <div
+                className="prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: emailContent.body }}
+              />
+            </ScrollArea>
+          </div>
         </ScrollArea>
 
-        <div className="mt-4 border p-4 rounded-md bg-white">
-          <p className="text-sm font-medium text-gray-700 mb-2 border-b pb-2">Email Preview</p>
-          <ScrollArea className="max-h-[200px] overflow-y-auto">
-            <div
-              className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: emailContent.body }}
-            />
-          </ScrollArea>
-        </div>
-
-        <DialogFooter className="mt-2 border-t pt-4">
+        <DialogFooter className="mt-4 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
