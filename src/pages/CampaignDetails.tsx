@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -169,7 +168,6 @@ const CampaignDetails = () => {
     try {
       setIsDeletingProspect(true);
       
-      // First delete any associated emails
       const { error: emailError } = await supabase
         .from('emails')
         .delete()
@@ -177,7 +175,6 @@ const CampaignDetails = () => {
         
       if (emailError) throw emailError;
       
-      // Then delete the prospect
       const { error: prospectError } = await supabase
         .from('prospects')
         .delete()
@@ -185,7 +182,6 @@ const CampaignDetails = () => {
         
       if (prospectError) throw prospectError;
       
-      // Update local state
       setProspects(prospects.filter(p => p.id !== deleteProspectId));
       toast.success('Prospect deleted successfully');
       
@@ -231,6 +227,7 @@ const CampaignDetails = () => {
         prospect_company_name: prospect.company_name || 'Prospect Company',
         prospect_rep_name: prospect.name || 'Prospect',
         prospect_rep_email: prospect.email || 'prospect@example.com',
+        prospect_rep_role: prospect.role || 'Unknown Role',
         prospect_id: prospect.id
       };
       
@@ -247,7 +244,6 @@ const CampaignDetails = () => {
         body: generatedEmail.body || ''
       });
       
-      // If email already exists and we're regenerating, update it
       if (regenerate && prospect.email_data?.id) {
         const { data: emailData, error } = await supabase
           .from('emails')
@@ -266,7 +262,6 @@ const CampaignDetails = () => {
           p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
         ));
       } else if (!generatedEmail.email_record) {
-        // If no email exists yet, create a new one
         const { data: emailData, error } = await supabase
           .from('emails')
           .insert({
@@ -284,7 +279,6 @@ const CampaignDetails = () => {
           p.id === prospect.id ? { ...p, email_data: emailData as Email } : p
         ));
       } else {
-        // Update with the email record from the response
         setProspects(prospects.map(p => 
           p.id === prospect.id ? { ...p, email_data: generatedEmail.email_record as Email } : p
         ));
