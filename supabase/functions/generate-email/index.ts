@@ -49,22 +49,45 @@ serve(async (req) => {
       }
     }
 
-    console.log("Sending request to the AI service for email generation");
+    console.log("Sending request to the external API service for email generation");
 
-    // Generate a mock email with HTML formatting - this simulates what would come from an AI service
-    const mockEmail = {
+    // Make API call to the external service
+    const externalApiResponse = await fetch("https://c12e-103-105-227-34.ngrok-free.app/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        company_name: processedData.company_name,
+        company_description: processedData.company_description,
+        campaign_description: processedData.campaign_description,
+        company_rep_name: processedData.company_rep_name,
+        company_rep_role: processedData.company_rep_role,
+        company_rep_email: processedData.company_rep_email,
+        prospect_company_name: processedData.prospect_company_name,
+        prospect_rep_name: processedData.prospect_rep_name,
+        prospect_rep_email: processedData.prospect_rep_email
+      }),
+    });
+
+    if (!externalApiResponse.ok) {
+      const errorData = await externalApiResponse.json();
+      console.error("Error response from external API:", errorData);
+      throw new Error(`External API error: ${JSON.stringify(errorData)}`);
+    }
+
+    const generatedEmail = await externalApiResponse.json();
+    console.log("Email generated successfully from external API:", generatedEmail);
+
+    // Prepare the response in the expected format
+    const emailResponse = {
       sender_email: processedData.company_rep_email,
       sender_name: processedData.company_rep_name,
       prospect_name: processedData.prospect_rep_name,
       prospect_email: processedData.prospect_rep_email,
       prospect_company_name: processedData.prospect_company_name,
-      subject: `Partnership opportunity with ${processedData.company_name}`,
-      body: `<p>Dear ${processedData.prospect_rep_name},</p>
-<p>I hope this email finds you well. My name is ${processedData.company_rep_name}, ${processedData.company_rep_role} at ${processedData.company_name}.</p>
-<p>${processedData.company_description}</p>
-<p>I'm reaching out to discuss ${processedData.campaign_description}.</p>
-<p>I believe there might be some great synergies between our companies. Would you be available for a 15-minute call this week to explore potential collaboration?</p>
-<p>Best regards,<br>${processedData.company_rep_name}<br>${processedData.company_rep_role}<br>${processedData.company_name}</p>`
+      subject: generatedEmail.subject || `Partnership opportunity with ${processedData.company_name}`,
+      body: generatedEmail.body || `Default email body if API doesn't return one`,
     };
 
     // If prospect_id is provided, store the email in the database
@@ -82,8 +105,8 @@ serve(async (req) => {
           .from('emails')
           .insert({
             prospect_id: requestData.prospect_id,
-            subject: mockEmail.subject,
-            body: mockEmail.body,
+            subject: emailResponse.subject,
+            body: emailResponse.body, // Store the HTML content as returned by the API
             status: 'draft'
           })
           .select()
@@ -101,7 +124,7 @@ serve(async (req) => {
         } else {
           console.log("Email stored successfully:", emailRecord);
           // Add the email record to the response
-          mockEmail.email_record = emailRecord;
+          emailResponse.email_record = emailRecord;
         }
       } catch (dbError) {
         console.error("Database operation error:", dbError);
@@ -116,7 +139,7 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify(mockEmail),
+      JSON.stringify(emailResponse),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
