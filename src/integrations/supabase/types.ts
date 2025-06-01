@@ -9,7 +9,172 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      campaigns: {
+        Row: {
+          company_description: string | null
+          company_name: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          representative_email: string | null
+          representative_name: string | null
+          representative_role: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          company_description?: string | null
+          company_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          representative_email?: string | null
+          representative_name?: string | null
+          representative_role?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          company_description?: string | null
+          company_name?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          representative_email?: string | null
+          representative_name?: string | null
+          representative_role?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          prospect_id: string
+          status: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          prospect_id: string
+          status?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          prospect_id?: string
+          status?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_description: string | null
+          id: string
+          name: string | null
+          profile_photo: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_description?: string | null
+          id: string
+          name?: string | null
+          profile_photo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_description?: string | null
+          id?: string
+          name?: string | null
+          profile_photo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prospects: {
+        Row: {
+          campaign_id: string
+          company_name: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: string | null
+        }
+        Insert: {
+          campaign_id: string
+          company_name: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          role?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          company_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          mailjet_api_key: string | null
+          mailjet_secret_key: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mailjet_api_key?: string | null
+          mailjet_secret_key?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mailjet_api_key?: string | null
+          mailjet_secret_key?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

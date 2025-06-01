@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseTemp as supabase } from "@/lib/supabase-temp";
 import { toast } from "sonner";
 
 interface AddProspectDialogProps {
